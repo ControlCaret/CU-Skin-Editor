@@ -261,7 +261,11 @@ function App() {
                 console.log("No 'Body' folder found at root, reading selected folder directly.");
             }
 
-            setSkinName(dirHandle.name);
+            if (dirHandle.name.toLowerCase() === 'body') {
+                setSkinName('Unnamed_Skin');
+            } else {
+                setSkinName(dirHandle.name.replace(/\s+/g, '_'));
+            }
 
             const newBlobs: Record<string, Blob> = {};
 
@@ -412,9 +416,17 @@ function App() {
                             <input 
                                 type="text" 
                                 value={skinName}
-                                onChange={(e) => setSkinName(e.target.value)}
-                                onBlur={() => setIsEditingName(false)}
-                                onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                                onChange={(e) => setSkinName(e.target.value.replace(/\s+/g, '_'))}
+                                onBlur={() => {
+                                    if (!skinName.trim()) setSkinName('Unnamed_Skin');
+                                    setIsEditingName(false);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (!skinName.trim()) setSkinName('Unnamed_Skin');
+                                        setIsEditingName(false);
+                                    }
+                                }}
                                 autoFocus
                                 style={{ 
                                     background: 'transparent', 
