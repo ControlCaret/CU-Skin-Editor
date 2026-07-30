@@ -51,6 +51,38 @@ function App() {
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
     const [color, setColor] = useState('#ff0000');
+    
+    // Resizing logic for the panels
+    const [leftPanelWidth, setLeftPanelWidth] = useState(250);
+    const [rightPanelWidth, setRightPanelWidth] = useState(200);
+    const resizingPanel = useRef<'left' | 'right' | null>(null);
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (resizingPanel.current === 'left') {
+                const newWidth = Math.max(150, Math.min(600, e.clientX));
+                setLeftPanelWidth(newWidth);
+            } else if (resizingPanel.current === 'right') {
+                const newWidth = Math.max(150, Math.min(600, window.innerWidth - e.clientX));
+                setRightPanelWidth(newWidth);
+            }
+        };
+
+        const handleMouseUp = () => {
+            if (resizingPanel.current) {
+                resizingPanel.current = null;
+                document.body.style.cursor = 'default';
+            }
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
 
     useEffect(() => {
         const preloadedFiles = defaultSprites.map(path => {
@@ -274,7 +306,7 @@ function App() {
             </header>
 
             <div className="main-content">
-                <aside className="left-panel">
+                <aside className="left-panel" style={{ width: leftPanelWidth, flexShrink: 0 }}>
                     <h3>Sprites</h3>
                     <div style={{ color: '#ccc', fontSize: '12px', overflowY: 'auto' }}>
                         {files.length === 0 ? (
@@ -306,6 +338,15 @@ function App() {
                     </div>
                 </aside>
 
+                <div 
+                    className="resizer" 
+                    onMouseDown={(e) => { 
+                        e.preventDefault(); 
+                        resizingPanel.current = 'left'; 
+                        document.body.style.cursor = 'col-resize'; 
+                    }} 
+                />
+
                 <main className="center-canvas">
                     {!selectedSprite ? (
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
@@ -321,7 +362,16 @@ function App() {
                     )}
                 </main>
 
-                <aside className="right-panel">
+                <div 
+                    className="resizer" 
+                    onMouseDown={(e) => { 
+                        e.preventDefault(); 
+                        resizingPanel.current = 'right'; 
+                        document.body.style.cursor = 'col-resize'; 
+                    }} 
+                />
+
+                <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0 }}>
                     <h3>Tools</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <label>
