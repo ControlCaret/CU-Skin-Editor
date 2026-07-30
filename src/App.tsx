@@ -42,28 +42,38 @@ function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Bl
 
 function App() {
     const [files, setFiles] = useState<SpriteFile[]>([]);
-    const [isLocalLoaded, setIsLocalLoaded] = useState(false);
-    const [selectedSprite, setSelectedSprite] = useState<SpriteFile | null>(null);
     const [modifiedBlobs, setModifiedBlobs] = useState<Record<string, Blob>>({});
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [skinName, setSkinName] = useState('Original');
+    const [isLocalLoaded, setIsLocalLoaded] = useState(false);
+    const [isRestored, setIsRestored] = useState(false);
+    
+    const [selectedSprite, setSelectedSprite] = useState<SpriteFile | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
     const [color, setColor] = useState('#ff0000');
-    
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLElement>(null);
     
     const [leftPanelWidth, setLeftPanelWidth] = useState(480);
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const resizingPanel = useRef<'left' | 'right' | null>(null);
-
-    const [skinName, setSkinName] = useState('Original');
     const [isEditingName, setIsEditingName] = useState(false);
 
-    const [isRestored, setIsRestored] = useState(false);
+    useEffect(() => {
+        const preloadedFiles = defaultSprites.map(path => {
+            const parts = path.split('/');
+            const name = parts[parts.length - 1];
+            return {
+                name,
+                path: `/${path}`,
+                handle: undefined
+            };
+        });
+        setFiles(preloadedFiles);
+    }, []);
 
-    // Load cached blobs and skin name from localStorage on mount
     useEffect(() => {
         const loadFromLocalStorage = async () => {
             const savedName = localStorage.getItem('cu-skin-editor-skinName');
@@ -88,7 +98,6 @@ function App() {
         loadFromLocalStorage();
     }, []);
 
-    // Save to local storage whenever modifiedBlobs or skinName changes
     useEffect(() => {
         if (!isRestored) return; // Prevent overwriting before initial load finishes
 
@@ -108,6 +117,43 @@ function App() {
         };
         saveToLocalStorage();
     }, [modifiedBlobs, skinName, isRestored]);
+
+    useEffect(() => {
+        if (!selectedSprite || !canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const img = new Image();
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            setCanvasSize({ w: img.width, h: img.height });
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            // Auto-calculate optimal zoom to fit container
+            if (containerRef.current) {
+                const pad = 60; // Padding
+                const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / img.width);
+                const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / img.height);
+                const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
+                setZoom(Math.min(100, fitZoom)); // Clamp max auto-zoom to 100x
+            }
+        };
+
+        const currentModifiedBlob = modifiedBlobs[selectedSprite.name];
+        if (currentModifiedBlob) {
+            img.src = URL.createObjectURL(currentModifiedBlob);
+        } else if (selectedSprite.handle) {
+            selectedSprite.handle.getFile().then((file: File) => {
+                img.src = URL.createObjectURL(file);
+            });
+        } else {
+            img.src = selectedSprite.path;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedSprite]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -136,7 +182,6 @@ function App() {
         };
     }, []);
 
-    // Prevent default browser zoom on canvas container
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
@@ -157,18 +202,41 @@ function App() {
         };
     }, []);
 
-    useEffect(() => {
-        const preloadedFiles = defaultSprites.map(path => {
-            const parts = path.split('/');
-            const name = parts[parts.length - 1];
-            return {
-                name,
-                path: `/${path}`,
-                handle: undefined
-            };
-        });
-        setFiles(preloadedFiles);
-    }, []);
+    const saveCanvasToMemory = () => {
+        if (selectedSprite && canvasRef.current) {
+            canvasRef.current.toBlob((blob) => {
+                if (blob) {
+                    setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: blob }));
+                }
+            }, 'image/png');
+        }
+    };
+
+    const handleSpriteSelect = (newSprite: SpriteFile) => {
+        saveCanvasToMemory();
+        setSelectedSprite(newSprite);
+    };
+
+    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!isDrawing || !canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = Math.floor((e.clientX - rect.left) * scaleX);
+        const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+        if (tool === 'eraser') {
+            ctx.clearRect(x, y, 1, 1);
+        } else {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, 1, 1);
+        }
+    };
 
     const handleOpenFolder = async () => {
         if (Object.keys(modifiedBlobs).length > 0) {
@@ -334,79 +402,6 @@ function App() {
                 }
             }
         }, 10);
-    };
-
-    const saveCanvasToMemory = () => {
-        if (selectedSprite && canvasRef.current) {
-            canvasRef.current.toBlob((blob) => {
-                if (blob) {
-                    setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: blob }));
-                }
-            }, 'image/png');
-        }
-    };
-
-    const handleSpriteSelect = (newSprite: SpriteFile) => {
-        saveCanvasToMemory();
-        setSelectedSprite(newSprite);
-    };
-
-    useEffect(() => {
-        if (!selectedSprite || !canvasRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const img = new Image();
-        img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            setCanvasSize({ w: img.width, h: img.height });
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-
-            // Auto-calculate optimal zoom to fit container
-            if (containerRef.current) {
-                const pad = 60; // Padding
-                const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / img.width);
-                const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / img.height);
-                const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
-                setZoom(Math.min(100, fitZoom)); // Clamp max auto-zoom to 100x
-            }
-        };
-
-        const currentModifiedBlob = modifiedBlobs[selectedSprite.name];
-        if (currentModifiedBlob) {
-            img.src = URL.createObjectURL(currentModifiedBlob);
-        } else if (selectedSprite.handle) {
-            selectedSprite.handle.getFile().then((file: File) => {
-                img.src = URL.createObjectURL(file);
-            });
-        } else {
-            img.src = selectedSprite.path;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSprite]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
-
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing || !canvasRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-
-        const x = Math.floor((e.clientX - rect.left) * scaleX);
-        const y = Math.floor((e.clientY - rect.top) * scaleY);
-
-        if (tool === 'eraser') {
-            ctx.clearRect(x, y, 1, 1);
-        } else {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, 1, 1);
-        }
     };
 
     return (
