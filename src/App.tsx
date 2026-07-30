@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
 
@@ -12,6 +13,7 @@ function App() {
     const [files, setFiles] = useState<SpriteFile[]>([]);
     const [isLocalLoaded, setIsLocalLoaded] = useState(false);
     const [selectedSprite, setSelectedSprite] = useState<SpriteFile | null>(null);
+    const [modifiedBlobs, setModifiedBlobs] = useState<Record<string, Blob>>({});
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
@@ -77,11 +79,23 @@ function App() {
         }
     };
 
-    const handleSave = async () => {
+    const handleSaveSprite = async () => {
         if (!selectedSprite || !canvasRef.current) return;
         
         if (!selectedSprite.handle) {
-            alert("Cannot save directly to a preloaded file. Please click [Open Local Folder] first to select your local skin folder.");
+            // Fallback: Download the edited canvas as a PNG if it's a preloaded file
+            canvasRef.current.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = selectedSprite.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            }, 'image/png');
             return;
         }
 
@@ -89,17 +103,73 @@ function App() {
             // @ts-ignore
             const writable = await selectedSprite.handle.createWritable();
             
-            canvasRef.current.toBlob(async (blob) => {
-                if (blob) {
-                    await writable.write(blob);
-                    await writable.close();
-                    alert("Saved successfully!");
-                }
-            }, 'image/png');
+            const blob = await new Promise<Blob | null>(resolve => {
+                canvasRef.current!.toBlob(resolve, 'image/png');
+            });
+
+            if (blob) {
+                await writable.write(blob);
+                await writable.close();
+                alert("Saved successfully!");
+            }
         } catch (err) {
             console.error("Save failed", err);
             alert("Failed to save. Make sure you have granted write permissions.");
         }
+    };
+
+    const handleExportZip = async () => {
+        const zip = new JSZip();
+        const bodyFolder = zip.folder("Body");
+        if (!bodyFolder) return;
+
+        // Capture current canvas state if something is selected
+        let currentBlob: Blob | null = null;
+        if (canvasRef.current && selectedSprite) {
+            currentBlob = await new Promise(resolve => canvasRef.current!.toBlob(resolve, 'image/png'));
+            if (currentBlob) {
+                setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: currentBlob! }));
+            }
+        }
+
+        for (const file of files) {
+            let blobToZip = modifiedBlobs[file.name];
+            if (file.name === selectedSprite?.name && currentBlob) {
+                blobToZip = currentBlob;
+            }
+
+            if (!blobToZip) {
+                if (file.handle) {
+                    blobToZip = await file.handle.getFile();
+                } else {
+                    const res = await fetch(file.path);
+                    blobToZip = await res.blob();
+                }
+            }
+            bodyFolder.file(file.name, blobToZip);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "ScavSkin.zip";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleSpriteSelect = (newSprite: SpriteFile) => {
+        // Save current canvas to memory before switching
+        if (selectedSprite && canvasRef.current) {
+            canvasRef.current.toBlob((blob) => {
+                if (blob) {
+                    setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: blob }));
+                }
+            }, 'image/png');
+        }
+        setSelectedSprite(newSprite);
     };
 
     useEffect(() => {
@@ -116,14 +186,16 @@ function App() {
             ctx.drawImage(img, 0, 0);
         };
 
-        if (selectedSprite.handle) {
+        if (modifiedBlobs[selectedSprite.name]) {
+            img.src = URL.createObjectURL(modifiedBlobs[selectedSprite.name]);
+        } else if (selectedSprite.handle) {
             selectedSprite.handle.getFile().then((file: File) => {
                 img.src = URL.createObjectURL(file);
             });
         } else {
             img.src = selectedSprite.path;
         }
-    }, [selectedSprite]);
+    }, [selectedSprite, modifiedBlobs]);
 
     const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !canvasRef.current) return;
@@ -150,10 +222,13 @@ function App() {
         <div className="app-container">
             <header className="top-bar">
                 <span className="menu-item" onClick={handleOpenFolder} style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                    [Open Local Folder]
+                    [Open Skin Folder]
                 </span>
-                <span className="menu-item" onClick={handleSave} style={{ color: '#2196F3', fontWeight: 'bold' }}>
-                    [Save File]
+                <span className="menu-item" onClick={handleSaveSprite} style={{ color: '#2196F3', fontWeight: 'bold' }}>
+                    [Save Sprite]
+                </span>
+                <span className="menu-item" onClick={handleExportZip} style={{ color: '#FF9800', fontWeight: 'bold' }}>
+                    [Export Skin (ZIP)]
                 </span>
                 <span className="menu-item">Edit</span>
                 <span className="menu-item">View</span>
@@ -172,7 +247,7 @@ function App() {
                                     const isMissing = isLocalLoaded && !f.handle;
                                     return (
                                         <li key={i} 
-                                            onClick={() => setSelectedSprite(f)}
+                                            onClick={() => handleSpriteSelect(f)}
                                             style={{ 
                                                 padding: '4px 0', 
                                                 cursor: 'pointer', 
@@ -181,7 +256,7 @@ function App() {
                                                 color: isMissing ? '#ff6b6b' : (f.handle ? '#4CAF50' : '#aaa')
                                             }}
                                         >
-                                            {f.name} {isMissing ? '(Missing)' : (f.handle ? '(Local)' : '')}
+                                            {f.name} {modifiedBlobs[f.name] ? '*' : ''} {isMissing ? '(Missing)' : (f.handle ? '(Local)' : '')}
                                         </li>
                                     );
                                 })}
