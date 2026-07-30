@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
+import { Pencil, Eraser } from 'lucide-react'
+import { SketchPicker } from 'react-color'
 
 interface SpriteFile {
     name: string;
@@ -540,23 +542,48 @@ function App() {
                 <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0 }}>
                     <h3>Tools</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <label>
-                            <input 
-                                type="radio" 
-                                checked={tool === 'pencil'} 
-                                onChange={() => setTool('pencil')} 
-                            /> Pencil
-                        </label>
-                        <label>
-                            <input 
-                                type="radio" 
-                                checked={tool === 'eraser'} 
-                                onChange={() => setTool('eraser')} 
-                            /> Eraser
-                        </label>
-                        <label style={{ marginTop: '10px' }}>
-                            Color: <input type="color" value={color} onChange={e => setColor(e.target.value)} />
-                        </label>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                            <button 
+                                onClick={() => setTool('pencil')}
+                                style={{ 
+                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'pencil' ? '#4CAF50' : '#333',
+                                    color: tool === 'pencil' ? '#fff' : '#aaa',
+                                    boxShadow: tool === 'pencil' ? '0 0 10px rgba(76, 175, 80, 0.5)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Pencil size={24} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pencil</span>
+                            </button>
+                            <button 
+                                onClick={() => setTool('eraser')}
+                                style={{ 
+                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'eraser' ? '#F44336' : '#333',
+                                    color: tool === 'eraser' ? '#fff' : '#aaa',
+                                    boxShadow: tool === 'eraser' ? '0 0 10px rgba(244, 67, 54, 0.5)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Eraser size={24} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Eraser</span>
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                            <SketchPicker 
+                                color={color} 
+                                onChange={(c) => setColor(c.hex)}
+                                disableAlpha={true}
+                                styles={{ 
+                                    default: { 
+                                        picker: { background: '#222', border: '1px solid #444', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: '100%', boxSizing: 'border-box' } 
+                                    } 
+                                }}
+                            />
+                        </div>
                         <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '10px' }}>
                             <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 Zoom: {zoom}x
