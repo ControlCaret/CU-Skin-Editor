@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
 
-// Define our file item interface
 interface SpriteFile {
     name: string;
     path: string;
@@ -18,15 +17,13 @@ function App() {
     const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
     const [color, setColor] = useState('#ff0000');
 
-    // Preload default sprites on mount
     useEffect(() => {
         const preloadedFiles = defaultSprites.map(path => {
-            // Extract filename from path (e.g., ".ogsprites/Body/experimentCrus.png" -> "experimentCrus.png")
             const parts = path.split('/');
             const name = parts[parts.length - 1];
             return {
                 name,
-                path: `/${path}`, // Absolute path from public root for fetch/image src
+                path: `/${path}`,
                 handle: undefined
             };
         });
@@ -39,21 +36,17 @@ function App() {
             const dirHandle = await window.showDirectoryPicker();
             const pngFiles: SpriteFile[] = [];
 
-            // Check if there is a "Body" folder inside the selected directory
             let targetDirHandle = dirHandle;
             let basePath = '';
             
             try {
-                // Try to get the "Body" subdirectory
                 targetDirHandle = await dirHandle.getDirectoryHandle('Body');
                 basePath = 'Body/';
             } catch (e) {
-                // If "Body" doesn't exist, we assume they either selected the Body folder directly,
-                // or we just read the selected folder as a fallback.
+                // Fallback to selected root if "Body" folder is missing
                 console.log("No 'Body' folder found at root, reading selected folder directly.");
             }
 
-            // Read only 1 level deep from the target folder
             for await (const entry of targetDirHandle.values()) {
                 if (entry.kind === 'file' && entry.name.endsWith('.png')) {
                     pngFiles.push({ 
@@ -64,17 +57,15 @@ function App() {
                 }
             }
 
-            // Compare found files against the mandatory default list
+            // Merge found files with mandatory defaults
             const mergedFiles = defaultSprites.map(path => {
                 const parts = path.split('/');
                 const name = parts[parts.length - 1];
-                
-                // Find if this mandatory file exists in the local folder
                 const localMatch = pngFiles.find(f => f.name === name);
                 
                 return {
                     name,
-                    path: `/${path}`, // Fallback URL if we need to show the base image
+                    path: `/${path}`, // Fallback URL for missing local files
                     handle: localMatch ? localMatch.handle : undefined
                 };
             });
@@ -86,7 +77,31 @@ function App() {
         }
     };
 
-    // Load selected sprite into canvas
+    const handleSave = async () => {
+        if (!selectedSprite || !canvasRef.current) return;
+        
+        if (!selectedSprite.handle) {
+            alert("Cannot save directly to a preloaded file. Please click [Open Local Folder] first to select your local skin folder.");
+            return;
+        }
+
+        try {
+            // @ts-ignore
+            const writable = await selectedSprite.handle.createWritable();
+            
+            canvasRef.current.toBlob(async (blob) => {
+                if (blob) {
+                    await writable.write(blob);
+                    await writable.close();
+                    alert("Saved successfully!");
+                }
+            }, 'image/png');
+        } catch (err) {
+            console.error("Save failed", err);
+            alert("Failed to save. Make sure you have granted write permissions.");
+        }
+    };
+
     useEffect(() => {
         if (!selectedSprite || !canvasRef.current) return;
         const canvas = canvasRef.current;
@@ -110,7 +125,6 @@ function App() {
         }
     }, [selectedSprite]);
 
-    // Drawing logic
     const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !canvasRef.current) return;
         const canvas = canvasRef.current;
@@ -134,19 +148,19 @@ function App() {
 
     return (
         <div className="app-container">
-            {/* Top Bar for Menus */}
             <header className="top-bar">
                 <span className="menu-item" onClick={handleOpenFolder} style={{ color: '#4CAF50', fontWeight: 'bold' }}>
                     [Open Local Folder]
                 </span>
-                <span className="menu-item">File</span>
+                <span className="menu-item" onClick={handleSave} style={{ color: '#2196F3', fontWeight: 'bold' }}>
+                    [Save File]
+                </span>
                 <span className="menu-item">Edit</span>
                 <span className="menu-item">View</span>
                 <span className="menu-item">Tools</span>
             </header>
 
             <div className="main-content">
-                {/* Left Panel for Sprite List */}
                 <aside className="left-panel">
                     <h3>Sprites</h3>
                     <div style={{ color: '#ccc', fontSize: '12px', overflowY: 'auto' }}>
@@ -176,7 +190,6 @@ function App() {
                     </div>
                 </aside>
 
-                {/* Center Area for Drawing Canvas */}
                 <main className="center-canvas">
                     {!selectedSprite ? (
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
@@ -192,7 +205,6 @@ function App() {
                     )}
                 </main>
 
-                {/* Right Panel for Drawing Tools & Properties */}
                 <aside className="right-panel">
                     <h3>Tools</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
