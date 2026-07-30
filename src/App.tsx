@@ -9,6 +9,39 @@ interface SpriteFile {
     handle?: any; // FileSystemFileHandle, undefined if it's a preloaded static file
 }
 
+function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Blob }) {
+    const [src, setSrc] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+        let url: string | undefined;
+        let active = true;
+
+        if (modifiedBlob) {
+            url = URL.createObjectURL(modifiedBlob);
+            setSrc(url);
+        } else if (file.handle) {
+            file.handle.getFile().then((f: File) => {
+                if (active) {
+                    url = URL.createObjectURL(f);
+                    setSrc(url);
+                }
+            });
+        } else {
+            setSrc(file.path);
+        }
+
+        return () => {
+            active = false;
+            if (url && (modifiedBlob || file.handle)) {
+                URL.revokeObjectURL(url);
+            }
+        };
+    }, [file, modifiedBlob]);
+
+    if (!src) return <div style={{ width: '24px', height: '24px', marginRight: '8px', display: 'inline-block', backgroundColor: '#444' }} />;
+    return <img src={src} alt={file.name} style={{ width: '24px', height: '24px', marginRight: '8px', verticalAlign: 'middle', imageRendering: 'pixelated' }} />;
+}
+
 function App() {
     const [files, setFiles] = useState<SpriteFile[]>([]);
     const [isLocalLoaded, setIsLocalLoaded] = useState(false);
@@ -160,8 +193,7 @@ function App() {
         URL.revokeObjectURL(url);
     };
 
-    const handleSpriteSelect = (newSprite: SpriteFile) => {
-        // Save current canvas to memory before switching
+    const saveCanvasToMemory = () => {
         if (selectedSprite && canvasRef.current) {
             canvasRef.current.toBlob((blob) => {
                 if (blob) {
@@ -169,6 +201,10 @@ function App() {
                 }
             }, 'image/png');
         }
+    };
+
+    const handleSpriteSelect = (newSprite: SpriteFile) => {
+        saveCanvasToMemory();
         setSelectedSprite(newSprite);
     };
 
@@ -186,8 +222,9 @@ function App() {
             ctx.drawImage(img, 0, 0);
         };
 
-        if (modifiedBlobs[selectedSprite.name]) {
-            img.src = URL.createObjectURL(modifiedBlobs[selectedSprite.name]);
+        const currentModifiedBlob = modifiedBlobs[selectedSprite.name];
+        if (currentModifiedBlob) {
+            img.src = URL.createObjectURL(currentModifiedBlob);
         } else if (selectedSprite.handle) {
             selectedSprite.handle.getFile().then((file: File) => {
                 img.src = URL.createObjectURL(file);
@@ -195,7 +232,8 @@ function App() {
         } else {
             img.src = selectedSprite.path;
         }
-    }, [selectedSprite, modifiedBlobs]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedSprite]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
 
     const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !canvasRef.current) return;
@@ -249,14 +287,17 @@ function App() {
                                         <li key={i} 
                                             onClick={() => handleSpriteSelect(f)}
                                             style={{ 
-                                                padding: '4px 0', 
+                                                padding: '4px 8px', 
                                                 cursor: 'pointer', 
                                                 borderBottom: '1px solid #333',
                                                 backgroundColor: selectedSprite?.name === f.name ? '#333' : 'transparent',
-                                                color: isMissing ? '#ff6b6b' : (f.handle ? '#4CAF50' : '#aaa')
+                                                color: isMissing ? '#ff6b6b' : (f.handle ? '#4CAF50' : '#aaa'),
+                                                display: 'flex',
+                                                alignItems: 'center'
                                             }}
                                         >
-                                            {f.name} {modifiedBlobs[f.name] ? '*' : ''} {isMissing ? '(Missing)' : (f.handle ? '(Local)' : '')}
+                                            <Thumbnail file={f} modifiedBlob={modifiedBlobs[f.name]} />
+                                            <span>{f.name} {modifiedBlobs[f.name] ? '*' : ''} {isMissing ? '(Missing)' : (f.handle ? '(Local)' : '')}</span>
                                         </li>
                                     );
                                 })}
@@ -274,8 +315,8 @@ function App() {
                             className="pixel-canvas"
                             onMouseDown={(e) => { setIsDrawing(true); draw(e); }}
                             onMouseMove={draw}
-                            onMouseUp={() => setIsDrawing(false)}
-                            onMouseLeave={() => setIsDrawing(false)}
+                            onMouseUp={() => { setIsDrawing(false); saveCanvasToMemory(); }}
+                            onMouseLeave={() => { setIsDrawing(false); saveCanvasToMemory(); }}
                         />
                     )}
                 </main>
