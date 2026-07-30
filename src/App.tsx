@@ -62,6 +62,10 @@ function App() {
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const resizingPanel = useRef<'left' | 'right' | null>(null);
 
+    // Skin Name logic
+    const [skinName, setSkinName] = useState('Original');
+    const [isEditingName, setIsEditingName] = useState(false);
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (resizingPanel.current === 'left') {
@@ -140,6 +144,8 @@ function App() {
                 console.log("No 'Body' folder found at root, reading selected folder directly.");
             }
 
+            setSkinName(dirHandle.name);
+
             for await (const entry of targetDirHandle.values()) {
                 if (entry.kind === 'file' && entry.name.endsWith('.png')) {
                     pngFiles.push({ 
@@ -211,7 +217,7 @@ function App() {
 
     const handleExportZip = async () => {
         const zip = new JSZip();
-        const bodyFolder = zip.folder("Body");
+        const bodyFolder = zip.folder(`${skinName}/Body`);
         if (!bodyFolder) return;
 
         // Capture current canvas state if something is selected
@@ -244,7 +250,7 @@ function App() {
         const url = URL.createObjectURL(zipBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "ScavSkin.zip";
+        a.download = `${skinName}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -327,6 +333,41 @@ function App() {
     return (
         <div className="app-container">
             <header className="top-bar">
+                <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
+                    {isEditingName ? (
+                            <input 
+                                type="text" 
+                                value={skinName}
+                                onChange={(e) => setSkinName(e.target.value)}
+                                onBlur={() => setIsEditingName(false)}
+                                onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                                autoFocus
+                                style={{ 
+                                    background: 'transparent', 
+                                    color: 'white', 
+                                    border: '1px solid transparent',
+                                    borderBottom: '1px solid #aaa',
+                                    outline: 'none',
+                                    padding: '2px 5px', 
+                                    fontSize: '16px', 
+                                    fontWeight: 'bold', 
+                                    width: `${Math.max(skinName.length, 6)}ch`,
+                                    fontFamily: 'inherit'
+                                }}
+                            />
+                    ) : (
+                        <span 
+                            onClick={() => setIsEditingName(true)}
+                            title="Click to edit skin name"
+                            style={{ 
+                                cursor: 'text', fontWeight: 'bold', fontSize: '16px', 
+                                padding: '2px 5px', border: '1px solid transparent' 
+                            }}
+                        >
+                            {skinName}
+                        </span>
+                    )}
+                </div>
                 <span className="menu-item" onClick={handleOpenFolder} style={{ color: '#4CAF50', fontWeight: 'bold' }}>
                     [Open Skin Folder]
                 </span>
