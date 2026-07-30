@@ -38,8 +38,8 @@ function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Bl
         };
     }, [file, modifiedBlob]);
 
-    if (!src) return <div style={{ minWidth: '32px', height: '32px', marginRight: '8px', display: 'inline-block', backgroundColor: '#444' }} />;
-    return <img src={src} alt={file.name} style={{ height: '32px', width: 'auto', marginRight: '8px', verticalAlign: 'middle', imageRendering: 'pixelated' }} />;
+    if (!src) return <div style={{ width: '32px', height: '32px', flexShrink: 0, marginRight: '8px', backgroundColor: '#444' }} />;
+    return <img src={src} alt={file.name} style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0, marginRight: '8px', imageRendering: 'pixelated' }} />;
 }
 
 function App() {
