@@ -52,6 +52,11 @@ function App() {
     const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
     const [color, setColor] = useState('#ff0000');
     
+    // Zoom logic
+    const [zoom, setZoom] = useState(1);
+    const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
+    const containerRef = useRef<HTMLElement>(null);
+    
     // Resizing logic for the panels
     const [leftPanelWidth, setLeftPanelWidth] = useState(480);
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
@@ -81,6 +86,27 @@ function App() {
         return () => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
+
+    // Prevent default browser zoom on canvas container
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey) {
+                e.preventDefault(); // Stop browser from zooming
+                if (e.deltaY < 0) setZoom(z => Math.min(100, z + 1));
+                else setZoom(z => Math.max(1, z - 1));
+            }
+        };
+
+        // Must be { passive: false } to allow e.preventDefault()
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        
+        return () => {
+            container.removeEventListener('wheel', handleWheel);
         };
     }, []);
 
@@ -250,8 +276,18 @@ function App() {
         img.onload = () => {
             canvas.width = img.width;
             canvas.height = img.height;
+            setCanvasSize({ w: img.width, h: img.height });
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
+
+            // Auto-calculate optimal zoom to fit container
+            if (containerRef.current) {
+                const pad = 60; // Padding
+                const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / img.width);
+                const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / img.height);
+                const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
+                setZoom(Math.min(100, fitZoom)); // Clamp max auto-zoom to 100x
+            }
         };
 
         const currentModifiedBlob = modifiedBlobs[selectedSprite.name];
@@ -347,18 +383,21 @@ function App() {
                     }} 
                 />
 
-                <main className="center-canvas">
+                <main className="center-canvas" ref={containerRef}>
                     {!selectedSprite ? (
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
                     ) : (
-                        <canvas
-                            ref={canvasRef}
-                            className="pixel-canvas"
-                            onMouseDown={(e) => { setIsDrawing(true); draw(e); }}
-                            onMouseMove={draw}
-                            onMouseUp={() => { setIsDrawing(false); saveCanvasToMemory(); }}
-                            onMouseLeave={() => { setIsDrawing(false); saveCanvasToMemory(); }}
-                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                            <canvas
+                                ref={canvasRef}
+                                className="pixel-canvas"
+                                style={{ width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}
+                                onMouseDown={(e) => { setIsDrawing(true); draw(e); }}
+                                onMouseMove={draw}
+                                onMouseUp={() => { setIsDrawing(false); saveCanvasToMemory(); }}
+                                onMouseLeave={() => { setIsDrawing(false); saveCanvasToMemory(); }}
+                            />
+                        </div>
                     )}
                 </main>
 
@@ -391,6 +430,17 @@ function App() {
                         <label style={{ marginTop: '10px' }}>
                             Color: <input type="color" value={color} onChange={e => setColor(e.target.value)} />
                         </label>
+                        <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '10px' }}>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                Zoom: {zoom}x
+                                <input 
+                                    type="range" 
+                                    min="1" max="100" 
+                                    value={zoom} 
+                                    onChange={e => setZoom(Number(e.target.value))} 
+                                />
+                            </label>
+                        </div>
                     </div>
                 </aside>
             </div>

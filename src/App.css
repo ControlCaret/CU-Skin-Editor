@@ -75,8 +75,6 @@ h3 {
 
 .pixel-canvas {
     image-rendering: pixelated; /* Ensures pixel art stays sharp */
-    transform: scale(4); /* Make it large enough to draw on easily */
-    transform-origin: center;
     border: 1px solid #444; /* Just to see the boundary */
     background-color: transparent; /* Assuming sprites have transparency */
 }
