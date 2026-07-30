@@ -2,8 +2,12 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
-import { Pencil, Eraser } from 'lucide-react'
+import { Pencil, Eraser, Pipette } from 'lucide-react'
 import { SketchPicker } from 'react-color'
+
+const rgbToHex = (r: number, g: number, b: number) => {
+    return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+};
 
 interface SpriteFile {
     name: string;
@@ -51,7 +55,7 @@ function App() {
     
     const [selectedSprite, setSelectedSprite] = useState<SpriteFile | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
+    const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper'>('pencil');
     const [color, setColor] = useState('#ff0000');
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -234,6 +238,11 @@ function App() {
 
         if (tool === 'eraser') {
             ctx.clearRect(x, y, 1, 1);
+        } else if (tool === 'eyedropper') {
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            if (pixel[3] > 0) { // If not transparent
+                setColor(rgbToHex(pixel[0], pixel[1], pixel[2]));
+            }
         } else {
             ctx.fillStyle = color;
             ctx.fillRect(x, y, 1, 1);
@@ -570,6 +579,20 @@ function App() {
                             >
                                 <Eraser size={24} />
                                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Eraser</span>
+                            </button>
+                            <button 
+                                onClick={() => setTool('eyedropper')}
+                                style={{ 
+                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'eyedropper' ? '#2196F3' : '#333',
+                                    color: tool === 'eyedropper' ? '#fff' : '#aaa',
+                                    boxShadow: tool === 'eyedropper' ? '0 0 10px rgba(33, 150, 243, 0.5)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <Pipette size={24} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pick</span>
                             </button>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
