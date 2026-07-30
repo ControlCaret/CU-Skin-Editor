@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
-import { Pencil, Eraser, Pipette } from 'lucide-react'
+import { Pencil, Eraser, Pipette, PaintBucket } from 'lucide-react'
 import { SketchPicker } from 'react-color'
 
 const rgbToHex = (r: number, g: number, b: number) => {
@@ -55,7 +55,7 @@ function App() {
     
     const [selectedSprite, setSelectedSprite] = useState<SpriteFile | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper'>('pencil');
+    const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper' | 'fill'>('pencil');
     const [color, setColor] = useState('#ff0000');
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -247,6 +247,78 @@ function App() {
             ctx.fillStyle = color;
             ctx.fillRect(x, y, 1, 1);
         }
+    };
+
+    const floodFill = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!canvasRef.current) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const startX = Math.floor((e.clientX - rect.left) * scaleX);
+        const startY = Math.floor((e.clientY - rect.top) * scaleY);
+
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        const getPixelIdx = (x: number, y: number) => (y * canvas.width + x) * 4;
+
+        const startIdx = getPixelIdx(startX, startY);
+        const startR = data[startIdx];
+        const startG = data[startIdx + 1];
+        const startB = data[startIdx + 2];
+        const startA = data[startIdx + 3];
+
+        const hexToRgb = (hex: string) => {
+            const bigint = parseInt(hex.slice(1), 16);
+            return {
+                r: (bigint >> 16) & 255,
+                g: (bigint >> 8) & 255,
+                b: bigint & 255
+            };
+        };
+        const targetColor = hexToRgb(color);
+
+        // Avoid infinite loop if clicking on same color
+        if (startR === targetColor.r && startG === targetColor.g && startB === targetColor.b && startA === 255) return;
+
+        const matchStartColor = (idx: number) => {
+            return data[idx] === startR && data[idx + 1] === startG && data[idx + 2] === startB && data[idx + 3] === startA;
+        };
+
+        const colorPixel = (idx: number) => {
+            data[idx] = targetColor.r;
+            data[idx + 1] = targetColor.g;
+            data[idx + 2] = targetColor.b;
+            data[idx + 3] = 255;
+        };
+
+        colorPixel(startIdx);
+        const queue = [[startX, startY]];
+        
+        while (queue.length > 0) {
+            const [x, y] = queue.shift()!;
+            
+            const neighbors = [
+                [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
+            ];
+
+            for (const [nx, ny] of neighbors) {
+                if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                    const nIdx = getPixelIdx(nx, ny);
+                    if (matchStartColor(nIdx)) {
+                        colorPixel(nIdx);
+                        queue.push([nx, ny]);
+                    }
+                }
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
     };
 
     const handleOpenFolder = async () => {
@@ -530,7 +602,15 @@ function App() {
                                 ref={canvasRef}
                                 className="pixel-canvas"
                                 style={{ width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}
-                                onMouseDown={(e) => { setIsDrawing(true); draw(e); }}
+                                onMouseDown={(e) => { 
+                                    if (tool === 'fill') {
+                                        floodFill(e);
+                                        saveCanvasToMemory(); // Auto save for fill tool
+                                    } else {
+                                        setIsDrawing(true); 
+                                        draw(e); 
+                                    }
+                                }}
                                 onMouseMove={draw}
                                 onMouseUp={() => { setIsDrawing(false); saveCanvasToMemory(); }}
                                 onMouseLeave={() => { setIsDrawing(false); saveCanvasToMemory(); }}
@@ -551,11 +631,11 @@ function App() {
                 <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0 }}>
                     <h3>Tools</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px' }}>
                             <button 
                                 onClick={() => setTool('pencil')}
                                 style={{ 
-                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
                                     padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
                                     backgroundColor: tool === 'pencil' ? '#4CAF50' : '#333',
                                     color: tool === 'pencil' ? '#fff' : '#aaa',
@@ -569,7 +649,7 @@ function App() {
                             <button 
                                 onClick={() => setTool('eraser')}
                                 style={{ 
-                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
                                     padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
                                     backgroundColor: tool === 'eraser' ? '#F44336' : '#333',
                                     color: tool === 'eraser' ? '#fff' : '#aaa',
@@ -581,9 +661,23 @@ function App() {
                                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Eraser</span>
                             </button>
                             <button 
+                                onClick={() => setTool('fill')}
+                                style={{ 
+                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'fill' ? '#FF9800' : '#333',
+                                    color: tool === 'fill' ? '#fff' : '#aaa',
+                                    boxShadow: tool === 'fill' ? '0 0 10px rgba(255, 152, 0, 0.5)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <PaintBucket size={24} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Fill</span>
+                            </button>
+                            <button 
                                 onClick={() => setTool('eyedropper')}
                                 style={{ 
-                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
                                     padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
                                     backgroundColor: tool === 'eyedropper' ? '#2196F3' : '#333',
                                     color: tool === 'eyedropper' ? '#fff' : '#aaa',
