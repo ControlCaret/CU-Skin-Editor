@@ -5,26 +5,24 @@ import { defaultSprites } from './defaultSprites'
 
 interface SpriteFile {
     name: string;
-    path: string;
-    handle?: any; // FileSystemFileHandle, undefined if it's a preloaded static file
+    path: string; // URL for the default fallback sprite
+    handle?: any; // FileSystemFileHandle if loaded from local
 }
 
 function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Blob }) {
-    const [src, setSrc] = useState<string | undefined>(undefined);
+    const [src, setSrc] = useState<string>('');
 
     useEffect(() => {
-        let url: string | undefined;
+        let url = '';
         let active = true;
 
         if (modifiedBlob) {
             url = URL.createObjectURL(modifiedBlob);
-            setSrc(url);
+            if (active) setSrc(url);
         } else if (file.handle) {
             file.handle.getFile().then((f: File) => {
-                if (active) {
-                    url = URL.createObjectURL(f);
-                    setSrc(url);
-                }
+                url = URL.createObjectURL(f);
+                if (active) setSrc(url);
             });
         } else {
             setSrc(file.path);
@@ -52,19 +50,64 @@ function App() {
     const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
     const [color, setColor] = useState('#ff0000');
     
-    // Zoom logic
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
     const containerRef = useRef<HTMLElement>(null);
     
-    // Resizing logic for the panels
     const [leftPanelWidth, setLeftPanelWidth] = useState(480);
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const resizingPanel = useRef<'left' | 'right' | null>(null);
 
-    // Skin Name logic
     const [skinName, setSkinName] = useState('Original');
     const [isEditingName, setIsEditingName] = useState(false);
+
+    const [isRestored, setIsRestored] = useState(false);
+
+    // Load cached blobs and skin name from localStorage on mount
+    useEffect(() => {
+        const loadFromLocalStorage = async () => {
+            const savedName = localStorage.getItem('cu-skin-editor-skinName');
+            if (savedName) setSkinName(savedName);
+
+            const data = localStorage.getItem('cu-skin-editor-blobs');
+            if (data) {
+                try {
+                    const store: Record<string, string> = JSON.parse(data);
+                    const blobs: Record<string, Blob> = {};
+                    for (const [name, dataUrl] of Object.entries(store)) {
+                        const res = await fetch(dataUrl);
+                        blobs[name] = await res.blob();
+                    }
+                    setModifiedBlobs(blobs);
+                } catch (e) {
+                    console.error("Failed to parse local storage data", e);
+                }
+            }
+            setIsRestored(true);
+        };
+        loadFromLocalStorage();
+    }, []);
+
+    // Save to local storage whenever modifiedBlobs or skinName changes
+    useEffect(() => {
+        if (!isRestored) return; // Prevent overwriting before initial load finishes
+
+        const saveToLocalStorage = async () => {
+            const promises = Object.entries(modifiedBlobs).map(async ([name, blob]) => {
+                return new Promise<{name: string, data: string}>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve({ name, data: reader.result as string });
+                    reader.readAsDataURL(blob);
+                });
+            });
+            const results = await Promise.all(promises);
+            const store: Record<string, string> = {};
+            results.forEach(r => store[r.name] = r.data);
+            localStorage.setItem('cu-skin-editor-blobs', JSON.stringify(store));
+            localStorage.setItem('cu-skin-editor-skinName', skinName);
+        };
+        saveToLocalStorage();
+    }, [modifiedBlobs, skinName, isRestored]);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -128,6 +171,12 @@ function App() {
     }, []);
 
     const handleOpenFolder = async () => {
+        if (Object.keys(modifiedBlobs).length > 0) {
+            if (!window.confirm("Opening a new skin folder will discard your current unsaved changes. Do you want to continue?")) {
+                return;
+            }
+        }
+
         try {
             // @ts-ignore: File System Access API types
             const dirHandle = await window.showDirectoryPicker();
@@ -146,6 +195,8 @@ function App() {
 
             setSkinName(dirHandle.name);
 
+            const newBlobs: Record<string, Blob> = {};
+
             for await (const entry of targetDirHandle.values()) {
                 if (entry.kind === 'file' && entry.name.endsWith('.png')) {
                     pngFiles.push({ 
@@ -153,6 +204,10 @@ function App() {
                         path: basePath + entry.name,
                         handle: entry 
                     });
+                    // Read file and add to newBlobs to cache in localStorage
+                    // @ts-ignore
+                    const file = await entry.getFile();
+                    newBlobs[entry.name] = file;
                 }
             }
 
@@ -170,7 +225,13 @@ function App() {
             });
             
             setFiles(mergedFiles);
+            setModifiedBlobs(newBlobs); // Replace previous edits with the newly loaded skin
             setIsLocalLoaded(true);
+            
+            // Force canvas to update if a sprite is currently selected
+            if (selectedSprite) {
+                setSelectedSprite({ ...selectedSprite });
+            }
         } catch (error) {
             console.error('Error opening folder:', error);
         }
@@ -255,6 +316,24 @@ function App() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    };
+
+    const handleResetClick = () => {
+        setTimeout(() => {
+            if (window.confirm("Are you sure you want to discard all changes and reset? This cannot be undone.")) {
+                setModifiedBlobs({});
+                setSkinName("Original");
+                localStorage.removeItem('cu-skin-editor-blobs');
+                localStorage.removeItem('cu-skin-editor-skinName');
+                if (selectedSprite && canvasRef.current) {
+                    const canvas = canvasRef.current;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    // Force reload from original file
+                    setSelectedSprite({ ...selectedSprite }); 
+                }
+            }
+        }, 10);
     };
 
     const saveCanvasToMemory = () => {
@@ -377,9 +456,9 @@ function App() {
                 <span className="menu-item" onClick={handleExportZip} style={{ color: '#FF9800', fontWeight: 'bold' }}>
                     [Export Skin (ZIP)]
                 </span>
-                <span className="menu-item">Edit</span>
-                <span className="menu-item">View</span>
-                <span className="menu-item">Tools</span>
+                <span className="menu-item" onClick={handleResetClick} style={{ color: '#F44336', fontWeight: 'bold' }}>
+                    [Reset All Changes]
+                </span>
             </header>
 
             <div className="main-content">
@@ -486,7 +565,7 @@ function App() {
                 </aside>
             </div>
         </div>
-    )
+    );
 }
 
-export default App
+export default App;
