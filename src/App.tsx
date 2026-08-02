@@ -66,11 +66,9 @@ function App() {
     const [canvasBackup, setCanvasBackup] = useState<ImageData | null>(null);
     const [dragOffset, setDragOffset] = useState<{x: number, y: number} | null>(null);
     
-    // Ref to hold latest state for global event listeners (like copy/paste)
-    const stateRef = useRef({ selectionData, selectionBounds, tool, canvasBackup });
-    useEffect(() => {
-        stateRef.current = { selectionData, selectionBounds, tool, canvasBackup };
-    }, [selectionData, selectionBounds, tool, canvasBackup]);
+    // Ref to hold latest state for global event listeners
+    const stateRef = useRef<any>({});
+    
     const [color, setColor] = useState('#ff0000');
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -298,16 +296,34 @@ function App() {
             
             if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
                 copyToClipboard();
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                const { selectionBounds, selectionData, saveCanvasToMemory } = stateRef.current;
+                if (selectionBounds) {
+                    if (selectionData) {
+                        // Already floating, just discard it to leave the hole
+                        stateRef.current.setSelectionData(null);
+                        stateRef.current.setSelectionBounds(null);
+                        stateRef.current.setCanvasBackup(null);
+                        stateRef.current.setIsDraggingSelection(false);
+                        saveCanvasToMemory();
+                    } else if (canvasRef.current) {
+                        // Not floating, erase pixels in the box
+                        const ctx = canvasRef.current.getContext('2d')!;
+                        ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                        stateRef.current.setSelectionBounds(null);
+                        saveCanvasToMemory();
+                    }
+                }
             } else if (e.key === 'Escape') {
                 const { canvasBackup } = stateRef.current;
                 if (canvasBackup && canvasRef.current) {
                     canvasRef.current.getContext('2d')!.putImageData(canvasBackup, 0, 0);
                 }
-                setSelectionBounds(null);
-                setSelectionData(null);
-                setCanvasBackup(null);
-                setIsDraggingSelection(false);
-                setIsDrawingSelection(false);
+                stateRef.current.setSelectionBounds(null);
+                stateRef.current.setSelectionData(null);
+                stateRef.current.setCanvasBackup(null);
+                stateRef.current.setIsDraggingSelection(false);
+                stateRef.current.setIsDrawingSelection(false);
                 // Trigger a re-render/save
                 if (canvasRef.current && selectedSprite) {
                     canvasRef.current.toBlob((blob) => {
@@ -714,6 +730,14 @@ function App() {
                 }
             }
         }, 10);
+    };
+
+    // Update stateRef every render so global listeners have access to latest state/functions
+    stateRef.current = {
+        selectionData, selectionBounds, tool, canvasBackup,
+        setTool, setSelectionBounds, setSelectionData, 
+        setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
+        commitSelection, saveCanvasToMemory
     };
 
     return (
