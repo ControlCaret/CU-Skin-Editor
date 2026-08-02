@@ -339,6 +339,12 @@ function App() {
                 stateRef.current.setTool('eyedropper');
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
                 stateRef.current.setTool('select');
+            } else if (!cmdOrCtrl && !e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                stateRef.current.setActiveMenu(stateRef.current.activeMenu === 'file' ? null : 'file');
+            } else if (!cmdOrCtrl && !e.shiftKey && e.altKey && e.key.toLowerCase() === 'v') {
+                e.preventDefault();
+                stateRef.current.setActiveMenu(stateRef.current.activeMenu === 'view' ? null : 'view');
             } else if (cmdOrCtrl && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 if (stateRef.current.handleSaveSprite) {
@@ -974,7 +980,7 @@ function App() {
         setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
         setIsPastedSelection, setOriginalSelectionBounds,
         commitSelection, saveCanvasToMemory, handleSaveSprite,
-        undo, redo
+        undo, redo, activeMenu, setActiveMenu
     };
 
     const handleAutoZoom = () => {

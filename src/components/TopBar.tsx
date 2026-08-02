@@ -68,7 +68,7 @@ export function TopBar({
 
             <div className="top-menu-group">
                 <div className="menu-wrapper" onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'file' ? null : 'file'); }}>
-                    <span className="menu-label">File</span>
+                    <span className="menu-label"><u>F</u>ile</span>
                     {activeMenu === 'file' && (
                         <div className="dropdown-menu">
                             <div className="dropdown-item" onClick={handleOpenFolder}>Open Skin Folder</div>
@@ -86,7 +86,7 @@ export function TopBar({
                 </div>
 
                 <div className="menu-wrapper" onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'view' ? null : 'view'); }}>
-                    <span className="menu-label">View</span>
+                    <span className="menu-label"><u>V</u>iew</span>
                     {activeMenu === 'view' && (
                         <div className="dropdown-menu small">
                             <div className="dropdown-item" onClick={() => setShowGuide(!showGuide)}>
