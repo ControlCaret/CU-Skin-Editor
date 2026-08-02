@@ -758,17 +758,7 @@ function App() {
             // @ts-ignore: File System Access API types
             const dirHandle = await window.showDirectoryPicker();
             const pngFiles: SpriteFile[] = [];
-
-            let targetDirHandle = dirHandle;
-            let basePath = '';
-            
-            try {
-                targetDirHandle = await dirHandle.getDirectoryHandle('Body');
-                basePath = 'Body/';
-            } catch (e) {
-                // Fallback to selected root if "Body" folder is missing
-                console.log("No 'Body' folder found at root, reading selected folder directly.");
-            }
+            const newBlobs: Record<string, Blob> = {};
 
             if (dirHandle.name.toLowerCase() === 'body') {
                 setSkinName('Unnamed_Skin');
@@ -776,20 +766,46 @@ function App() {
                 setSkinName(dirHandle.name.replace(/\s+/g, '_'));
             }
 
-            const newBlobs: Record<string, Blob> = {};
-
-            for await (const entry of targetDirHandle.values()) {
-                if (entry.kind === 'file' && entry.name.endsWith('.png')) {
-                    pngFiles.push({ 
-                        name: entry.name,
-                        path: basePath + entry.name,
-                        handle: entry 
-                    });
-                    // Read file and add to newBlobs to cache in localStorage
-                    // @ts-ignore
-                    const file = await entry.getFile();
-                    newBlobs[entry.name] = file;
+            // Helper function to read a directory
+            const readDir = async (handle: any, folderPrefix: string) => {
+                for await (const entry of handle.values()) {
+                    if (entry.kind === 'file' && entry.name.endsWith('.png')) {
+                        pngFiles.push({ 
+                            name: entry.name,
+                            path: folderPrefix + entry.name,
+                            handle: entry 
+                        });
+                        // @ts-ignore
+                        const file = await entry.getFile();
+                        newBlobs[entry.name] = file;
+                    }
                 }
+            };
+
+            let foundAny = false;
+            
+            // 1. Read Body folder if it exists
+            try {
+                const bodyHandle = await dirHandle.getDirectoryHandle('Body');
+                await readDir(bodyHandle, 'Body/');
+                foundAny = true;
+            } catch (e) {
+                console.log("No 'Body' folder found.");
+            }
+
+            // 2. Read Head folder if it exists
+            try {
+                const headHandle = await dirHandle.getDirectoryHandle('Head');
+                await readDir(headHandle, 'Head/');
+                foundAny = true;
+            } catch (e) {
+                console.log("No 'Head' folder found.");
+            }
+
+            // 3. Fallback to root directory if neither Body nor Head was found
+            if (!foundAny) {
+                console.log("Reading selected folder directly.");
+                await readDir(dirHandle, '');
             }
 
             // Merge found files with mandatory defaults
