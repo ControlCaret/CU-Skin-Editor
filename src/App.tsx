@@ -68,6 +68,9 @@ function App() {
     const [isPastedSelection, setIsPastedSelection] = useState(false);
     const [originalSelectionBounds, setOriginalSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     
+    // Undo/Redo history
+    const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
+
     // Ref to hold latest state for global event listeners
     const stateRef = useRef<any>({});
     
@@ -152,6 +155,10 @@ function App() {
             setCanvasSize({ w: img.width, h: img.height });
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
+
+            // Initialize history with the loaded state
+            const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            historyRef.current = { stack: [initialData], index: 0 };
 
             // Auto-calculate optimal zoom to fit container
             if (containerRef.current) {
@@ -249,10 +256,46 @@ function App() {
         };
     };
 
+    const pushToHistory = () => {
+        if (!canvasRef.current) return;
+        const ctx = canvasRef.current.getContext('2d')!;
+        const data = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+        
+        const h = historyRef.current;
+        h.stack = h.stack.slice(0, h.index + 1);
+        h.stack.push(data);
+        if (h.stack.length > 50) {
+            h.stack.shift();
+        } else {
+            h.index++;
+        }
+    };
+
+    const undo = () => {
+        const h = historyRef.current;
+        if (h.index > 0 && canvasRef.current) {
+            h.index--;
+            const ctx = canvasRef.current.getContext('2d')!;
+            ctx.putImageData(h.stack[h.index], 0, 0);
+            saveCanvasToMemory();
+        }
+    };
+
+    const redo = () => {
+        const h = historyRef.current;
+        if (h.index < h.stack.length - 1 && canvasRef.current) {
+            h.index++;
+            const ctx = canvasRef.current.getContext('2d')!;
+            ctx.putImageData(h.stack[h.index], 0, 0);
+            saveCanvasToMemory();
+        }
+    };
+
     const commitSelection = () => {
         if (selectionData && canvasBackup && selectionBounds && canvasRef.current) {
             setSelectionData(null);
             setCanvasBackup(null);
+            pushToHistory();
             saveCanvasToMemory();
         }
     };
@@ -296,7 +339,13 @@ function App() {
             const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
             const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
             
-            if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
+            if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                if (stateRef.current.redo) stateRef.current.redo();
+            } else if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                if (stateRef.current.undo) stateRef.current.undo();
+            } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
                 copyToClipboard();
             } else if (cmdOrCtrl && e.key.toLowerCase() === 's') {
                 e.preventDefault();
@@ -495,6 +544,7 @@ function App() {
 
         if (tool === 'fill') {
             floodFill(e);
+            pushToHistory();
             saveCanvasToMemory();
         } else if (tool === 'select') {
             if (selectionBounds && 
@@ -575,6 +625,7 @@ function App() {
             saveCanvasToMemory();
         } else if (isDrawing) {
             setIsDrawing(false);
+            pushToHistory();
             saveCanvasToMemory();
         }
     };
@@ -846,7 +897,8 @@ function App() {
         setTool, setSelectionBounds, setSelectionData, 
         setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
         setIsPastedSelection, setOriginalSelectionBounds,
-        commitSelection, saveCanvasToMemory, handleSaveSprite
+        commitSelection, saveCanvasToMemory, handleSaveSprite,
+        undo, redo
     };
 
     return (
