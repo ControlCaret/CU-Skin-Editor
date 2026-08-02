@@ -85,6 +85,7 @@ function App() {
     const resizingPanel = useRef<'left' | 'right' | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
+    const [showPixelGrid, setShowPixelGrid] = useState(false);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
     // Close menu when clicking outside
@@ -978,6 +979,9 @@ function App() {
                                 <div className="dropdown-item" onClick={() => setShowGuide(!showGuide)}>
                                     {showGuide ? 'Hide Center Guide' : 'Show Center Guide'}
                                 </div>
+                                <div className="dropdown-item" onClick={() => setShowPixelGrid(!showPixelGrid)}>
+                                    {showPixelGrid ? 'Hide Pixel Grid' : 'Show Pixel Grid'}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1046,6 +1050,18 @@ function App() {
                                     <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: '1px', backgroundColor: '#00ffcc', pointerEvents: 'none', mixBlendMode: 'difference' }} />
                                     <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: '#00ffcc', pointerEvents: 'none', mixBlendMode: 'difference' }} />
                                 </>
+                            )}
+                            {showPixelGrid && zoom > 2 && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 0, left: 0, right: 0, bottom: 0,
+                                    pointerEvents: 'none',
+                                    backgroundImage: `
+                                        linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
+                                        linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px)
+                                    `,
+                                    backgroundSize: `${zoom}px ${zoom}px`
+                                }} />
                             )}
                             {tool === 'select' && selectionBounds && (
                                 <div style={{
