@@ -8,6 +8,7 @@ interface SpriteFile {
     name: string;
     path: string; // URL for the default fallback sprite
     handle?: any; // FileSystemFileHandle if loaded from local
+    [key: string]: any; // Allow arbitrary metadata
 }
 
 function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Blob }) {
@@ -93,12 +94,13 @@ function App() {
     }, []);
 
     useEffect(() => {
-        const preloadedFiles = defaultSprites.map(path => {
-            const parts = path.split('/');
+        const preloadedFiles = defaultSprites.map(sprite => {
+            const parts = sprite.path.split('/');
             const name = parts[parts.length - 1];
             return {
+                ...sprite,
                 name,
-                path: `/${path}`,
+                path: `/${sprite.path}`,
                 handle: undefined
             };
         });
@@ -791,14 +793,15 @@ function App() {
             }
 
             // Merge found files with mandatory defaults
-            const mergedFiles = defaultSprites.map(path => {
-                const parts = path.split('/');
+            const mergedFiles = defaultSprites.map(sprite => {
+                const parts = sprite.path.split('/');
                 const name = parts[parts.length - 1];
                 const localMatch = pngFiles.find(f => f.name === name);
                 
                 return {
+                    ...sprite,
                     name,
-                    path: `/${path}`, // Fallback URL for missing local files
+                    path: `/${sprite.path}`, // Fallback URL for missing local files
                     handle: localMatch ? localMatch.handle : undefined
                 };
             });
