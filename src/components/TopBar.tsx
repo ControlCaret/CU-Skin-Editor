@@ -14,6 +14,8 @@ interface TopBarProps {
     setShowGuide: (show: boolean) => void;
     showPixelGrid: boolean;
     setShowPixelGrid: (show: boolean) => void;
+    activeTab: 'editor' | 'preview';
+    setActiveTab: (tab: 'editor' | 'preview') => void;
 }
 
 export function TopBar({
@@ -31,7 +33,9 @@ export function TopBar({
     showGuide,
     setShowGuide,
     showPixelGrid,
-    setShowPixelGrid
+    setShowPixelGrid,
+    activeTab,
+    setActiveTab
 }: TopBarProps) {
     return (
         <header className="top-bar">
@@ -98,6 +102,13 @@ export function TopBar({
                         </div>
                     )}
                 </div>
+                
+                <button 
+                    className="view-toggle-btn"
+                    onClick={() => setActiveTab(activeTab === 'editor' ? 'preview' : 'editor')}
+                >
+                    {activeTab === 'editor' ? 'Skin Preview' : 'Sprite Editor'}
+                </button>
             </div>
         </header>
     );

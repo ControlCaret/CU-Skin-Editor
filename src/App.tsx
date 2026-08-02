@@ -6,6 +6,7 @@ import { extractPalette } from './utils/paletteExtraction'
 
 import type { SpriteFile } from './types'
 import { TopBar } from './components/TopBar'
+import { SkinPreviewTab } from './components/SkinPreviewTab'
 import { LeftPanel } from './components/LeftPanel'
 import { RightPanel } from './components/RightPanel'
 import { CanvasEditor } from './components/CanvasEditor'
@@ -34,6 +35,8 @@ function App() {
     
     // Undo/Redo history
     const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
+
+    const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('preview');
 
     // Ref to hold latest state for global event listeners
     const stateRef = useRef<any>({});
@@ -1028,6 +1031,8 @@ function App() {
                 setShowGuide={setShowGuide}
                 showPixelGrid={showPixelGrid}
                 setShowPixelGrid={setShowPixelGrid}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
             />
 
             <div className="main-content">
@@ -1049,22 +1054,31 @@ function App() {
                     }} 
                 />
 
-                <CanvasEditor
-                    containerRef={containerRef}
-                    selectedSprite={selectedSprite}
-                    canvasSize={canvasSize}
-                    zoom={zoom}
-                    setZoom={setZoom}
-                    handleAutoZoom={handleAutoZoom}
-                    canvasRef={canvasRef}
-                    handleMouseDown={handleMouseDown}
-                    handleMouseMove={handleMouseMove}
-                    handleMouseUp={handleMouseUp}
-                    showGuide={showGuide}
-                    showPixelGrid={showPixelGrid}
-                    tool={tool}
-                    selectionBounds={selectionBounds}
-                />
+                <div className="center-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
+                    {activeTab === 'editor' ? (
+                        <CanvasEditor
+                            containerRef={containerRef}
+                            selectedSprite={selectedSprite}
+                            canvasSize={canvasSize}
+                            zoom={zoom}
+                            setZoom={setZoom}
+                            handleAutoZoom={handleAutoZoom}
+                            canvasRef={canvasRef}
+                            handleMouseDown={handleMouseDown}
+                            handleMouseMove={handleMouseMove}
+                            handleMouseUp={handleMouseUp}
+                            showGuide={showGuide}
+                            showPixelGrid={showPixelGrid}
+                            tool={tool}
+                            selectionBounds={selectionBounds}
+                        />
+                    ) : (
+                        <SkinPreviewTab 
+                            modifiedBlobs={modifiedBlobs}
+                            files={files}
+                        />
+                    )}
+                </div>
 
                 <div 
                     className="resizer" 
