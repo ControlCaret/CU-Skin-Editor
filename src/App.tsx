@@ -296,6 +296,29 @@ function App() {
             
             if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
                 copyToClipboard();
+            } else if (cmdOrCtrl && e.key.toLowerCase() === 'a') {
+                e.preventDefault();
+                stateRef.current.setTool('select');
+                if (canvasRef.current) {
+                    if (stateRef.current.selectionData) {
+                        stateRef.current.commitSelection();
+                    }
+                    stateRef.current.setSelectionBounds({
+                        x: 0,
+                        y: 0,
+                        w: canvasRef.current.width,
+                        h: canvasRef.current.height
+                    });
+                    stateRef.current.setSelectionData(null);
+                    stateRef.current.setIsDrawingSelection(false);
+                    stateRef.current.setIsDraggingSelection(false);
+                }
+            } else if (cmdOrCtrl && e.key.toLowerCase() === 'd') {
+                e.preventDefault();
+                stateRef.current.commitSelection();
+                stateRef.current.setSelectionBounds(null);
+                stateRef.current.setIsDrawingSelection(false);
+                stateRef.current.setIsDraggingSelection(false);
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
                 const { selectionBounds, selectionData, saveCanvasToMemory } = stateRef.current;
                 if (selectionBounds) {
