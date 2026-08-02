@@ -345,6 +345,10 @@ function App() {
         };
 
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+                return;
+            }
+
             const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
             const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
             
@@ -357,15 +361,15 @@ function App() {
             } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
                 copyToClipboard();
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
-                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('pencil');
+                stateRef.current.setTool('pencil');
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'e') {
-                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('eraser');
+                stateRef.current.setTool('eraser');
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
-                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('fill');
+                stateRef.current.setTool('fill');
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'i') {
-                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('eyedropper');
+                stateRef.current.setTool('eyedropper');
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
-                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('select');
+                stateRef.current.setTool('select');
             } else if (cmdOrCtrl && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 if (stateRef.current.handleSaveSprite) {
