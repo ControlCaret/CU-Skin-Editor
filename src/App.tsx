@@ -172,7 +172,7 @@ function App() {
 
             // Auto-calculate optimal zoom to fit container
             if (containerRef.current) {
-                const pad = 60; // Padding
+                const pad = 180; // Padding
                 const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / img.width);
                 const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / img.height);
                 const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
