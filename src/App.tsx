@@ -314,6 +314,42 @@ function App() {
                         saveCanvasToMemory();
                     }
                 }
+            } else if (e.key.startsWith('Arrow')) {
+                const { selectionBounds, selectionData, canvasBackup } = stateRef.current;
+                if (selectionBounds && canvasRef.current) {
+                    e.preventDefault();
+                    let currentData = selectionData;
+                    let backup = canvasBackup;
+                    const ctx = canvasRef.current.getContext('2d')!;
+                    
+                    if (!currentData) {
+                        currentData = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                        ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                        backup = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+                        stateRef.current.setSelectionData(currentData);
+                        stateRef.current.setCanvasBackup(backup);
+                        stateRef.current.setIsDraggingSelection(true);
+                    }
+                    
+                    let dx = 0; let dy = 0;
+                    if (e.key === 'ArrowUp') dy = -1;
+                    if (e.key === 'ArrowDown') dy = 1;
+                    if (e.key === 'ArrowLeft') dx = -1;
+                    if (e.key === 'ArrowRight') dx = 1;
+                    
+                    const newX = selectionBounds.x + dx;
+                    const newY = selectionBounds.y + dy;
+                    
+                    if (backup) ctx.putImageData(backup, 0, 0);
+                    
+                    const offscreen = document.createElement('canvas');
+                    offscreen.width = selectionBounds.w;
+                    offscreen.height = selectionBounds.h;
+                    offscreen.getContext('2d')!.putImageData(currentData, 0, 0);
+                    ctx.drawImage(offscreen, newX, newY);
+                    
+                    stateRef.current.setSelectionBounds({ ...selectionBounds, x: newX, y: newY });
+                }
             } else if (e.key === 'Escape') {
                 const { canvasBackup } = stateRef.current;
                 if (canvasBackup && canvasRef.current) {
