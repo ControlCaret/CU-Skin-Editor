@@ -1034,8 +1034,12 @@ function App() {
                     {!selectedSprite ? (
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                        <div className="checkerboard" style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
+                        <>
+                            <div style={{ position: 'absolute', top: '15px', left: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: '#ddd', pointerEvents: 'none', zIndex: 10 }}>
+                                {canvasSize.w} &times; {canvasSize.h} px
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                                <div className="checkerboard" style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
                             <canvas
                                 ref={canvasRef}
                                 className="pixel-canvas"
@@ -1077,6 +1081,7 @@ function App() {
                             )}
                         </div>
                         </div>
+                        </>
                     )}
                 </main>
 
