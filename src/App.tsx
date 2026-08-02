@@ -926,6 +926,56 @@ function App() {
         URL.revokeObjectURL(url);
     };
 
+    const handleExportFolder = async (mode: 'bodyOnly' | 'split') => {
+        try {
+            // @ts-ignore
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            
+            // Capture current canvas state if something is selected
+            let currentBlob: Blob | null = null;
+            if (canvasRef.current && selectedSprite) {
+                currentBlob = await new Promise(resolve => canvasRef.current!.toBlob(resolve, 'image/png'));
+                if (currentBlob) {
+                    setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: currentBlob! }));
+                }
+            }
+            
+            for (const file of files) {
+                let blobToExport = modifiedBlobs[file.name];
+                if (file.name === selectedSprite?.name && currentBlob) {
+                    blobToExport = currentBlob;
+                }
+
+                if (!blobToExport) {
+                    if (file.handle) {
+                        blobToExport = await file.handle.getFile();
+                    } else {
+                        const res = await fetch(file.path);
+                        blobToExport = await res.blob();
+                    }
+                }
+
+                let folderName = 'Body';
+                if (mode === 'split' && file.category) {
+                    folderName = file.category;
+                }
+                
+                const skinFolderHandle = await dirHandle.getDirectoryHandle(skinName, { create: true });
+                const targetFolderHandle = await skinFolderHandle.getDirectoryHandle(folderName, { create: true });
+                const fileHandle = await targetFolderHandle.getFileHandle(file.name, { create: true });
+                
+                // @ts-ignore
+                const writable = await fileHandle.createWritable();
+                await writable.write(blobToExport);
+                await writable.close();
+            }
+            
+            alert("Exported to folder successfully!");
+        } catch (error) {
+            console.error("Folder export failed:", error);
+        }
+    };
+
     const handleResetClick = () => {
         setTimeout(() => {
             if (window.confirm("Are you sure you want to discard all changes and reset? This cannot be undone.")) {
@@ -1011,6 +1061,10 @@ function App() {
                             <div className="dropdown-menu">
                                 <div className="dropdown-item" onClick={handleOpenFolder}>Open Skin Folder</div>
                                 <div className="dropdown-item" onClick={handleSaveSprite}>Save Sprite</div>
+                                <div className="dropdown-divider" />
+                                <div className="dropdown-item" onClick={() => handleExportFolder('bodyOnly')}>Export Folder (All in Body)</div>
+                                <div className="dropdown-item" onClick={() => handleExportFolder('split')}>Export Folder (Split Body/Head)</div>
+                                <div className="dropdown-divider" />
                                 <div className="dropdown-item" onClick={() => handleExportZip('bodyOnly')}>Export ZIP (All in Body)</div>
                                 <div className="dropdown-item" onClick={() => handleExportZip('split')}>Export ZIP (Split Body/Head)</div>
                                 <div className="dropdown-divider" />
