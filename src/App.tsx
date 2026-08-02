@@ -944,7 +944,7 @@ function App() {
     return (
         <div className="app-container">
             <header className="top-bar">
-                <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
+                <div className="top-bar-controls">
                     {isEditingName ? (
                             <input 
                                 type="text" 
@@ -961,51 +961,38 @@ function App() {
                                     }
                                 }}
                                 autoFocus
-                                style={{ 
-                                    background: 'transparent', 
-                                    color: 'white', 
-                                    border: '1px solid transparent',
-                                    borderBottom: '1px solid #aaa',
-                                    outline: 'none',
-                                    padding: '2px 5px', 
-                                    fontSize: '16px', 
-                                    fontWeight: 'bold', 
-                                    width: `${Math.max(skinName.length, 6)}ch`,
-                                    fontFamily: 'inherit'
-                                }}
+                                className="skin-name-input"
+                                style={{ width: `${Math.max(skinName.length, 6)}ch` }}
                             />
                     ) : (
                         <span 
                             onClick={() => setIsEditingName(true)}
                             title="Click to edit skin name"
-                            style={{ 
-                                cursor: 'text', fontWeight: 'bold', fontSize: '16px', 
-                                padding: '2px 5px', border: '1px solid transparent' 
-                            }}
+                            className="skin-name-display"
                         >
                             {skinName}
                         </span>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '20px', marginLeft: '20px' }}>
-                    <div style={{ position: 'relative' }} onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'file' ? null : 'file'); }}>
-                        <span style={{ cursor: 'pointer', fontWeight: 'bold' }}>File</span>
+                <div className="top-menu-group">
+                    <div className="menu-wrapper" onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'file' ? null : 'file'); }}>
+                        <span className="menu-label">File</span>
                         {activeMenu === 'file' && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '10px', backgroundColor: '#333', border: '1px solid #444', borderRadius: '4px', padding: '5px 0', minWidth: '180px', zIndex: 100, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                            <div className="dropdown-menu">
                                 <div className="dropdown-item" onClick={handleOpenFolder}>Open Skin Folder</div>
                                 <div className="dropdown-item" onClick={handleSaveSprite}>Save Sprite</div>
                                 <div className="dropdown-item" onClick={handleExportZip}>Export Skin (ZIP)</div>
-                                <div style={{ height: '1px', backgroundColor: '#444', margin: '5px 0' }} />
-                                <div className="dropdown-item" style={{ color: '#ff6b6b' }} onClick={handleResetClick}>Reset All Changes</div>
+                                <div className="dropdown-divider" />
+                                <div className="dropdown-item danger" onClick={handleResetClick}>Reset All Changes</div>
                             </div>
                         )}
                     </div>
 
-                    <div style={{ position: 'relative' }} onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'view' ? null : 'view'); }}>
-                        <span style={{ cursor: 'pointer', fontWeight: 'bold' }}>View</span>
+                    <div className="menu-wrapper" onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'view' ? null : 'view'); }}>
+                        <span className="menu-label">View</span>
                         {activeMenu === 'view' && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '10px', backgroundColor: '#333', border: '1px solid #444', borderRadius: '4px', padding: '5px 0', minWidth: '150px', zIndex: 100, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                            <div className="dropdown-menu small">
                                 <div className="dropdown-item" onClick={() => setShowGuide(!showGuide)}>
                                     {showGuide ? 'Hide Center Guide' : 'Show Center Guide'}
                                 </div>
@@ -1021,25 +1008,23 @@ function App() {
             <div className="main-content">
                 <aside className="left-panel" style={{ width: leftPanelWidth, flexShrink: 0 }}>
                     <h3>Sprites</h3>
-                    <div style={{ color: '#ccc', fontSize: '12px', overflowY: 'auto' }}>
+                    <div className="sprite-list-container">
                         {files.length === 0 ? (
                             <span>No sprites loaded.</span>
                         ) : (
-                            <ul style={{ listStyleType: 'none', padding: 0 }}>
+                            <ul className="sprite-list">
                                 {files.map((f, i) => {
                                     const isMissing = isLocalLoaded && !f.handle;
+                                    const isActive = selectedSprite?.name === f.name;
+                                    let itemClass = "sprite-list-item";
+                                    if (isActive) itemClass += " active";
+                                    if (isMissing) itemClass += " missing";
+                                    else if (f.handle) itemClass += " local";
+                                    
                                     return (
                                         <li key={i} 
                                             onClick={() => handleSpriteSelect(f)}
-                                            style={{ 
-                                                padding: '4px 8px', 
-                                                cursor: 'pointer', 
-                                                borderBottom: '1px solid #333',
-                                                backgroundColor: selectedSprite?.name === f.name ? '#333' : 'transparent',
-                                                color: isMissing ? '#ff6b6b' : (f.handle ? '#4CAF50' : '#aaa'),
-                                                display: 'flex',
-                                                alignItems: 'center'
-                                            }}
+                                            className={itemClass}
                                         >
                                             <Thumbnail file={f} modifiedBlob={modifiedBlobs[f.name]} />
                                             <span>{f.name} {modifiedBlobs[f.name] ? '*' : ''} {isMissing ? '(Missing)' : (f.handle ? '(Local)' : '')}</span>
@@ -1065,23 +1050,23 @@ function App() {
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
                     ) : (
                         <>
-                            <div style={{ position: 'absolute', bottom: '15px', left: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: '#ddd', pointerEvents: 'none', zIndex: 10 }}>
+                            <div className="canvas-info">
                                 {canvasSize.w} &times; {canvasSize.h} px
                             </div>
-                            <div style={{ position: 'absolute', bottom: '15px', right: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: '#ddd', zIndex: 10, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <button onClick={handleAutoZoom} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: '11px', borderRadius: '4px', marginRight: '4px' }}>Auto</button>
-                                <button onClick={() => setZoom(z => Math.max(1, z - 1))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '14px', fontWeight: 'bold' }}>-</button>
+                            <div className="zoom-controls">
+                                <button onClick={handleAutoZoom} className="zoom-btn-auto">Auto</button>
+                                <button onClick={() => setZoom(z => Math.max(1, z - 1))} className="zoom-btn">-</button>
                                 <input 
                                     type="range" 
                                     min="1" max="100" 
                                     value={zoom} 
                                     onChange={e => setZoom(Number(e.target.value))} 
-                                    style={{ width: '120px', margin: '0', cursor: 'pointer' }}
+                                    className="zoom-slider"
                                 />
-                                <span style={{ width: '3ch', textAlign: 'center' }}>{zoom}x</span>
-                                <button onClick={() => setZoom(z => Math.min(100, z + 1))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '14px', fontWeight: 'bold' }}>+</button>
+                                <span className="zoom-text">{zoom}x</span>
+                                <button onClick={() => setZoom(z => Math.min(100, z + 1))} className="zoom-btn">+</button>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                            <div className="canvas-wrapper">
                                 <div className="checkerboard" style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
                             <canvas
                                 ref={canvasRef}
@@ -1094,8 +1079,8 @@ function App() {
                             />
                             {showGuide && (
                                 <>
-                                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: '1px', backgroundColor: '#00ffcc', pointerEvents: 'none', mixBlendMode: 'difference' }} />
-                                    <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: '#00ffcc', pointerEvents: 'none', mixBlendMode: 'difference' }} />
+                                    <div className="guide-line-v" />
+                                    <div className="guide-line-h" />
                                 </>
                             )}
                             {showPixelGrid && zoom > 2 && (
@@ -1111,16 +1096,15 @@ function App() {
                                 }} />
                             )}
                             {tool === 'select' && selectionBounds && (
-                                <div style={{
-                                    position: 'absolute',
-                                    left: selectionBounds.x * zoom,
-                                    top: selectionBounds.y * zoom,
-                                    width: selectionBounds.w * zoom,
-                                    height: selectionBounds.h * zoom,
-                                    border: '1px dashed #fff',
-                                    backgroundColor: 'rgba(255,255,255,0.15)',
-                                    pointerEvents: 'none'
-                                }} />
+                                <div 
+                                    className="selection-box"
+                                    style={{
+                                        left: selectionBounds.x * zoom,
+                                        top: selectionBounds.y * zoom,
+                                        width: selectionBounds.w * zoom,
+                                        height: selectionBounds.h * zoom
+                                    }} 
+                                />
                             )}
                         </div>
                         </div>
@@ -1141,67 +1125,42 @@ function App() {
                     <h3>Tools</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
                         
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '10px' }}>
+                        <div className="tools-grid">
                             <button 
                                 onClick={() => setTool('pencil')}
-                                style={{ 
-                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'pencil' ? '#00ffcc' : '#333',
-                                    color: tool === 'pencil' ? '#000' : '#fff'
-                                }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pen (P)</span>
+                                className={`tool-btn ${tool === 'pencil' ? 'active' : ''}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
+                                <span>Pen (P)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('eraser')}
-                                style={{ 
-                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'eraser' ? '#00ffcc' : '#333',
-                                    color: tool === 'eraser' ? '#000' : '#fff'
-                                }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"></path><line x1="16" y1="15" x2="9" y2="8"></line></svg>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Eraser (E)</span>
+                                className={`tool-btn ${tool === 'eraser' ? 'active' : ''}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"></path><line x1="16" y1="15" x2="9" y2="8"></line></svg>
+                                <span>Eraser (E)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('fill')}
-                                style={{ 
-                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'fill' ? '#00ffcc' : '#333',
-                                    color: tool === 'fill' ? '#000' : '#fff'
-                                }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19.2 8.5l-4-4L4 15.7V20h4.3l10.9-11.5z"></path><path d="M2 22h20"></path><path d="M16.5 6l2 2"></path></svg>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Fill (F)</span>
+                                className={`tool-btn ${tool === 'fill' ? 'active' : ''}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19.2 8.5l-4-4L4 15.7V20h4.3l10.9-11.5z"></path><path d="M2 22h20"></path><path d="M16.5 6l2 2"></path></svg>
+                                <span>Fill (F)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('eyedropper')}
-                                style={{ 
-                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'eyedropper' ? '#00ffcc' : '#333',
-                                    color: tool === 'eyedropper' ? '#000' : '#fff'
-                                }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 9.5L17 7l-2-2-2.5 2.5"></path><path d="M12 12l-7 7v3h3l7-7"></path><path d="M3 21l3-3"></path></svg>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pick (I)</span>
+                                className={`tool-btn ${tool === 'eyedropper' ? 'active' : ''}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 9.5L17 7l-2-2-2.5 2.5"></path><path d="M12 12l-7 7v3h3l7-7"></path><path d="M3 21l3-3"></path></svg>
+                                <span>Pick (I)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('select')}
-                                style={{ 
-                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'select' ? '#00ffcc' : '#333',
-                                    color: tool === 'select' ? '#000' : '#fff'
-                                }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Select (S)</span>
+                                className={`tool-btn ${tool === 'select' ? 'active' : ''}`}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                                <span>Select (S)</span>
                             </button>
                         </div>
                         
-                        <div style={{ marginTop: '5px', padding: '10px', backgroundColor: '#333', borderRadius: '8px' }}>
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <div className="brush-size-container">
+                            <label className="brush-size-label">
+                                <div className="brush-size-header">
                                     <span>Brush Size</span>
                                     <span>{brushSize}px</span>
                                 </div>
@@ -1210,12 +1169,12 @@ function App() {
                                     min="1" max="16" 
                                     value={brushSize} 
                                     onChange={e => setBrushSize(Number(e.target.value))} 
-                                    style={{ width: '100%', margin: '0', cursor: 'pointer' }}
+                                    className="brush-slider"
                                 />
                             </label>
                         </div>
 
-                        <div className="custom-color-picker" style={{ width: '100%', marginBottom: '10px' }}>
+                        <div className="custom-color-picker color-picker-wrapper">
                             <SketchPicker 
                                 color={color} 
                                 onChange={(c) => setColor({ r: c.rgb.r, g: c.rgb.g, b: c.rgb.b, a: c.rgb.a ?? 1 })}
