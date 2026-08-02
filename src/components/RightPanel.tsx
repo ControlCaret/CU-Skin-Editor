@@ -8,7 +8,7 @@ interface RightPanelProps {
     setBrushSize: (size: number) => void;
     color: { r: number, g: number, b: number, a: number };
     setColor: (c: { r: number, g: number, b: number, a: number }) => void;
-    recentColors: { r: number, g: number, b: number, a: number }[];
+    paletteColors: { r: number, g: number, b: number, a: number }[];
     rgbaToHex: (c: { r: number, g: number, b: number, a: number }) => string;
 }
 
@@ -20,7 +20,7 @@ export function RightPanel({
     setBrushSize,
     color,
     setColor,
-    recentColors,
+    paletteColors,
     rgbaToHex
 }: RightPanelProps) {
     return (
@@ -81,7 +81,7 @@ export function RightPanel({
                     <SketchPicker 
                         color={color} 
                         onChange={(c) => setColor({ r: c.rgb.r, g: c.rgb.g, b: c.rgb.b, a: c.rgb.a ?? 1 })}
-                        presetColors={recentColors.map(rgbaToHex)}
+                        presetColors={paletteColors.map(rgbaToHex)}
                         disableAlpha={false}
                     />
                 </div>

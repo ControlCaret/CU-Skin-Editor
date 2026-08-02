@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
-
+import { extractPalette } from './utils/paletteExtraction'
 
 import type { SpriteFile } from './types'
 import { TopBar } from './components/TopBar'
@@ -39,7 +39,7 @@ function App() {
     const stateRef = useRef<any>({});
     
     const [color, setColor] = useState({ r: 255, g: 0, b: 0, a: 1 });
-    const [recentColors, setRecentColors] = useState<{r:number,g:number,b:number,a:number}[]>([]);
+    const [paletteColors, setPaletteColors] = useState<{r:number,g:number,b:number,a:number}[]>([]);
     const [brushSize, setBrushSize] = useState(1);
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -135,6 +135,10 @@ function App() {
             // Initialize history with the loaded state
             const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             historyRef.current = { stack: [initialData], index: 0 };
+
+            // Extract Palette
+            const extracted = extractPalette(initialData, 14);
+            setPaletteColors(extracted);
 
             if (containerRef.current) {
                 const pad = 180;
@@ -615,11 +619,11 @@ function App() {
             pushToHistory();
             saveCanvasToMemory();
             
-            setRecentColors(prev => {
+            setPaletteColors(prev => {
                 const exists = prev.some(c => c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
                 if (exists) return prev;
-                const newRecent = [color, ...prev];
-                return newRecent.slice(0, 14);
+                const newPalette = [color, ...prev];
+                return newPalette.slice(0, 14);
             });
         }
     };
@@ -1066,7 +1070,7 @@ function App() {
                     setBrushSize={setBrushSize}
                     color={color}
                     setColor={setColor}
-                    recentColors={recentColors}
+                    paletteColors={paletteColors}
                     rgbaToHex={rgbaToHex}
                 />
             </div>
