@@ -8,7 +8,8 @@ interface RightPanelProps {
     setBrushSize: (size: number) => void;
     color: { r: number, g: number, b: number, a: number };
     setColor: (c: { r: number, g: number, b: number, a: number }) => void;
-    paletteColors: { r: number, g: number, b: number, a: number }[];
+    recentColors: { r: number, g: number, b: number, a: number }[];
+    extractedColors: { r: number, g: number, b: number, a: number }[];
     rgbaToHex: (c: { r: number, g: number, b: number, a: number }) => string;
 }
 
@@ -20,7 +21,8 @@ export function RightPanel({
     setBrushSize,
     color,
     setColor,
-    paletteColors,
+    recentColors,
+    extractedColors,
     rgbaToHex
 }: RightPanelProps) {
     return (
@@ -81,9 +83,49 @@ export function RightPanel({
                     <SketchPicker 
                         color={color} 
                         onChange={(c) => setColor({ r: c.rgb.r, g: c.rgb.g, b: c.rgb.b, a: c.rgb.a ?? 1 })}
-                        presetColors={paletteColors.map(rgbaToHex)}
+                        presetColors={[]}
                         disableAlpha={false}
                     />
+                    
+                    <div className="custom-palettes-container">
+                        <div>
+                            <span className="palette-title">Extracted Colors</span>
+                            <div className="palette-grid">
+                                {extractedColors.map((c, i) => {
+                                    const hex = rgbaToHex(c);
+                                    return (
+                                        <div 
+                                            key={`ext-${i}`} 
+                                            onClick={() => setColor(c)}
+                                            className="palette-swatch"
+                                            style={{ backgroundColor: hex }}
+                                            title={hex}
+                                        />
+                                    );
+                                })}
+                                {extractedColors.length === 0 && <span className="palette-empty-text">No colors extracted yet.</span>}
+                            </div>
+                        </div>
+                        
+                        <div className="palette-section-divider">
+                            <span className="palette-title">Recent Colors</span>
+                            <div className="palette-grid">
+                                {recentColors.map((c, i) => {
+                                    const hex = rgbaToHex(c);
+                                    return (
+                                        <div 
+                                            key={`rec-${i}`} 
+                                            onClick={() => setColor(c)}
+                                            className="palette-swatch"
+                                            style={{ backgroundColor: hex }}
+                                            title={hex}
+                                        />
+                                    );
+                                })}
+                                {recentColors.length === 0 && <span className="palette-empty-text">No recent colors yet.</span>}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>

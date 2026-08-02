@@ -39,7 +39,8 @@ function App() {
     const stateRef = useRef<any>({});
     
     const [color, setColor] = useState({ r: 255, g: 0, b: 0, a: 1 });
-    const [paletteColors, setPaletteColors] = useState<{r:number,g:number,b:number,a:number}[]>([]);
+    const [recentColors, setRecentColors] = useState<{r:number,g:number,b:number,a:number}[]>([]);
+    const [extractedColors, setExtractedColors] = useState<{r:number,g:number,b:number,a:number}[]>([]);
     const [brushSize, setBrushSize] = useState(1);
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -137,8 +138,8 @@ function App() {
             historyRef.current = { stack: [initialData], index: 0 };
 
             // Extract Palette
-            const extracted = extractPalette(initialData, 14);
-            setPaletteColors(extracted);
+            const extracted = extractPalette(initialData, 28);
+            setExtractedColors(extracted);
 
             if (containerRef.current) {
                 const pad = 180;
@@ -619,11 +620,11 @@ function App() {
             pushToHistory();
             saveCanvasToMemory();
             
-            setPaletteColors(prev => {
+            setRecentColors(prev => {
                 const exists = prev.some(c => c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
                 if (exists) return prev;
-                const newPalette = [color, ...prev];
-                return newPalette.slice(0, 14);
+                const newRecent = [color, ...prev];
+                return newRecent.slice(0, 14); // Keep last 14 recent colors
             });
         }
     };
@@ -1070,7 +1071,8 @@ function App() {
                     setBrushSize={setBrushSize}
                     color={color}
                     setColor={setColor}
-                    paletteColors={paletteColors}
+                    recentColors={recentColors}
+                    extractedColors={extractedColors}
                     rgbaToHex={rgbaToHex}
                 />
             </div>
