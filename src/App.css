@@ -16,6 +16,18 @@
     border-bottom: 1px solid #333;
 }
 
+.dropdown-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background-color: #4CAF50;
+}
+
 .menu-item {
     margin-right: 15px;
     cursor: pointer;
@@ -75,6 +87,26 @@ h3 {
 
 .pixel-canvas {
     image-rendering: pixelated; /* Ensures pixel art stays sharp */
-    border: 1px solid #444; /* Just to see the boundary */
+    box-shadow: 0 0 0 1px #444; /* Use box-shadow instead of border to prevent 1px offset */
     background-color: transparent; /* Assuming sprites have transparency */
+}
+
+.checkerboard {
+    background-color: #2a2a2a;
+    background-image: conic-gradient(#1a1a1a 90deg, transparent 90deg 180deg, #1a1a1a 180deg 270deg, transparent 270deg);
+    background-size: 16px 16px;
+    background-position: 0 0;
+}
+
+.custom-color-picker .sketch-picker {
+    width: 100% !important;
+    background: #222 !important;
+    border: 1px solid #444 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    box-sizing: border-box !important;
+}
+
+.custom-color-picker .sketch-picker > div:first-child {
+    padding-bottom: 100% !important;
 }
