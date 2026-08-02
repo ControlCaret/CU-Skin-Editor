@@ -1011,7 +1011,7 @@ function App() {
     };
 
     return (
-        <div className="app-container">
+        <div className="app-container" onContextMenu={(e) => e.preventDefault()}>
             <TopBar 
                 skinName={skinName}
                 setSkinName={setSkinName}
