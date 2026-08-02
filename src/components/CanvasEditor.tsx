@@ -2,13 +2,13 @@ import React from 'react';
 import type { SpriteFile } from '../types';
 
 interface CanvasEditorProps {
-    containerRef: React.RefObject<HTMLElement>;
+    containerRef: React.RefObject<HTMLElement | null>;
     selectedSprite: SpriteFile | null;
     canvasSize: { w: number; h: number };
     zoom: number;
     setZoom: React.Dispatch<React.SetStateAction<number>>;
     handleAutoZoom: () => void;
-    canvasRef: React.RefObject<HTMLCanvasElement>;
+    canvasRef: React.RefObject<HTMLCanvasElement | null>;
     handleMouseDown: (e: React.MouseEvent<HTMLCanvasElement>) => void;
     handleMouseMove: (e: React.MouseEvent<HTMLCanvasElement>) => void;
     handleMouseUp: () => void;
