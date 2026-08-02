@@ -251,7 +251,10 @@ function App() {
     };
 
     const handleSpriteSelect = (newSprite: SpriteFile) => {
-        saveCanvasToMemory();
+        if (selectedSprite && newSprite.name === selectedSprite.name) return;
+        if (historyRef.current.index > 0) {
+            saveCanvasToMemory();
+        }
         setSelectedSprite(newSprite);
     };
 
