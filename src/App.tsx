@@ -65,6 +65,12 @@ function App() {
     const [selectionData, setSelectionData] = useState<ImageData | null>(null);
     const [canvasBackup, setCanvasBackup] = useState<ImageData | null>(null);
     const [dragOffset, setDragOffset] = useState<{x: number, y: number} | null>(null);
+    
+    // Ref to hold latest state for global event listeners (like copy/paste)
+    const stateRef = useRef({ selectionData, selectionBounds, tool, canvasBackup });
+    useEffect(() => {
+        stateRef.current = { selectionData, selectionBounds, tool, canvasBackup };
+    }, [selectionData, selectionBounds, tool, canvasBackup]);
     const [color, setColor] = useState('#ff0000');
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -251,6 +257,114 @@ function App() {
         }
     };
 
+    // --- Global Keyboard & Paste Listeners ---
+    useEffect(() => {
+        const copyToClipboard = () => {
+            const { selectionData, selectionBounds } = stateRef.current;
+            let dataToCopy: ImageData | null = null;
+
+            if (selectionData) {
+                dataToCopy = selectionData;
+            } else if (selectionBounds && canvasRef.current) {
+                dataToCopy = canvasRef.current.getContext('2d')!.getImageData(
+                    selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h
+                );
+            }
+
+            if (!dataToCopy) return;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = dataToCopy.width;
+            tempCanvas.height = dataToCopy.height;
+            tempCanvas.getContext('2d')!.putImageData(dataToCopy, 0, 0);
+            
+            tempCanvas.toBlob(async (blob) => {
+                if (blob) {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        console.log("Copied to clipboard");
+                    } catch (e) {
+                        console.error("Failed to copy", e);
+                    }
+                }
+            }, 'image/png');
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+            
+            if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
+                copyToClipboard();
+            } else if (e.key === 'Escape') {
+                const { canvasBackup } = stateRef.current;
+                if (canvasBackup && canvasRef.current) {
+                    canvasRef.current.getContext('2d')!.putImageData(canvasBackup, 0, 0);
+                }
+                setSelectionBounds(null);
+                setSelectionData(null);
+                setCanvasBackup(null);
+                setIsDraggingSelection(false);
+                setIsDrawingSelection(false);
+                // Trigger a re-render/save
+                if (canvasRef.current && selectedSprite) {
+                    canvasRef.current.toBlob((blob) => {
+                        if (blob) {
+                            setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: blob }));
+                        }
+                    }, 'image/png');
+                }
+            }
+        };
+
+        const handleGlobalPaste = (e: ClipboardEvent) => {
+            if (e.clipboardData) {
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        if (blob) {
+                            const img = new Image();
+                            img.src = URL.createObjectURL(blob);
+                            img.onload = () => {
+                                if (!canvasRef.current) return;
+                                setTool('select');
+                                
+                                const ctx = canvasRef.current.getContext('2d')!;
+                                const tempCanvas = document.createElement('canvas');
+                                tempCanvas.width = img.width;
+                                tempCanvas.height = img.height;
+                                const tempCtx = tempCanvas.getContext('2d')!;
+                                tempCtx.drawImage(img, 0, 0);
+                                const data = tempCtx.getImageData(0, 0, img.width, img.height);
+                                
+                                const startX = 0;
+                                const startY = 0;
+                                
+                                setSelectionBounds({ x: startX, y: startY, w: img.width, h: img.height });
+                                setSelectionData(data);
+                                setCanvasBackup(ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
+                                setIsDraggingSelection(false);
+                                
+                                ctx.drawImage(tempCanvas, startX, startY);
+                            };
+                        }
+                        break;
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('paste', handleGlobalPaste);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('paste', handleGlobalPaste);
+        };
+    }, []);
+
     useEffect(() => {
         if (tool !== 'select') {
             commitSelection();
@@ -290,7 +404,7 @@ function App() {
             commitSelection();
             setSelectionBounds(null);
             setIsDrawing(true);
-            draw(e, x, y);
+            draw(x, y);
         }
     };
 
@@ -321,7 +435,7 @@ function App() {
                 setSelectionBounds({ ...selectionBounds, x: newX, y: newY });
             }
         } else if (isDrawing) {
-            draw(e, x, y);
+            draw(x, y);
         }
     };
 
@@ -333,9 +447,7 @@ function App() {
             }
         } else if (isDraggingSelection) {
             setIsDraggingSelection(false);
-            if (canvasRef.current) {
-                setCanvasBackup(canvasRef.current.getContext('2d')!.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
-            }
+            // Do not overwrite canvasBackup to prevent stamping on multiple moves.
             saveCanvasToMemory();
         } else if (isDrawing) {
             setIsDrawing(false);
@@ -343,7 +455,7 @@ function App() {
         }
     };
 
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>, x: number, y: number) => {
+    const draw = (x: number, y: number) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
