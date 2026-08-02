@@ -97,3 +97,16 @@ h3 {
     background-size: 16px 16px;
     background-position: 0 0;
 }
+
+.custom-color-picker .sketch-picker {
+    width: 100% !important;
+    background: #222 !important;
+    border: 1px solid #444 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+    box-sizing: border-box !important;
+}
+
+.custom-color-picker .sketch-picker > div:first-child {
+    padding-bottom: 100% !important;
+}

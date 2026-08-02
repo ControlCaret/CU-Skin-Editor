@@ -1148,16 +1148,11 @@ function App() {
                                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Select</span>
                             </button>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                        <div className="custom-color-picker" style={{ width: '100%', marginBottom: '10px' }}>
                             <SketchPicker 
                                 color={color} 
                                 onChange={(c) => setColor(c.hex)}
                                 disableAlpha={true}
-                                styles={{ 
-                                    default: { 
-                                        picker: { background: '#222', border: '1px solid #444', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: '100%', boxSizing: 'border-box' } 
-                                    } 
-                                }}
                             />
                         </div>
                         <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '10px' }}>
