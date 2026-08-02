@@ -2,46 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
-import { SketchPicker } from 'react-color'
 
-interface SpriteFile {
-    name: string;
-    path: string; // URL for the default fallback sprite
-    handle?: any; // FileSystemFileHandle if loaded from local
-    category?: string; // Logical folder categorization
-    [key: string]: any; // Allow arbitrary metadata
-}
 
-function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Blob }) {
-    const [src, setSrc] = useState<string>('');
-
-    useEffect(() => {
-        let url = '';
-        let active = true;
-
-        if (modifiedBlob) {
-            url = URL.createObjectURL(modifiedBlob);
-            if (active) setSrc(url);
-        } else if (file.handle) {
-            file.handle.getFile().then((f: File) => {
-                url = URL.createObjectURL(f);
-                if (active) setSrc(url);
-            });
-        } else {
-            setSrc(file.path);
-        }
-
-        return () => {
-            active = false;
-            if (url && (modifiedBlob || file.handle)) {
-                URL.revokeObjectURL(url);
-            }
-        };
-    }, [file, modifiedBlob]);
-
-    if (!src) return <div style={{ width: '32px', height: '32px', flexShrink: 0, marginRight: '8px', backgroundColor: '#444' }} />;
-    return <img src={src} alt={file.name} style={{ width: '32px', height: '32px', objectFit: 'contain', flexShrink: 0, marginRight: '8px', imageRendering: 'pixelated' }} />;
-}
+import type { SpriteFile } from './types'
+import { TopBar } from './components/TopBar'
+import { LeftPanel } from './components/LeftPanel'
+import { RightPanel } from './components/RightPanel'
+import { CanvasEditor } from './components/CanvasEditor'
 
 function App() {
     const [files, setFiles] = useState<SpriteFile[]>([]);
@@ -372,6 +339,12 @@ function App() {
                 stateRef.current.setTool('eyedropper');
             } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
                 stateRef.current.setTool('select');
+            } else if (!cmdOrCtrl && !e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                stateRef.current.setActiveMenu(stateRef.current.activeMenu === 'file' ? null : 'file');
+            } else if (!cmdOrCtrl && !e.shiftKey && e.altKey && e.key.toLowerCase() === 'v') {
+                e.preventDefault();
+                stateRef.current.setActiveMenu(stateRef.current.activeMenu === 'view' ? null : 'view');
             } else if (cmdOrCtrl && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 if (stateRef.current.handleSaveSprite) {
@@ -1007,7 +980,7 @@ function App() {
         setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
         setIsPastedSelection, setOriginalSelectionBounds,
         commitSelection, saveCanvasToMemory, handleSaveSprite,
-        undo, redo
+        undo, redo, activeMenu, setActiveMenu
     };
 
     const handleAutoZoom = () => {
@@ -1022,108 +995,33 @@ function App() {
 
     return (
         <div className="app-container">
-            <header className="top-bar">
-                <div className="top-bar-controls">
-                    {isEditingName ? (
-                            <input 
-                                type="text" 
-                                value={skinName}
-                                onChange={(e) => setSkinName(e.target.value.replace(/\s+/g, '_'))}
-                                onBlur={() => {
-                                    if (!skinName.trim()) setSkinName('Unnamed_Skin');
-                                    setIsEditingName(false);
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        if (!skinName.trim()) setSkinName('Unnamed_Skin');
-                                        setIsEditingName(false);
-                                    }
-                                }}
-                                autoFocus
-                                className="skin-name-input"
-                                style={{ width: `${Math.max(skinName.length, 6)}ch` }}
-                            />
-                    ) : (
-                        <span 
-                            onClick={() => setIsEditingName(true)}
-                            title="Click to edit skin name"
-                            className="skin-name-display"
-                        >
-                            {skinName}
-                        </span>
-                    )}
-                </div>
-
-                <div className="top-menu-group">
-                    <div className="menu-wrapper" onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'file' ? null : 'file'); }}>
-                        <span className="menu-label">File</span>
-                        {activeMenu === 'file' && (
-                            <div className="dropdown-menu">
-                                <div className="dropdown-item" onClick={handleOpenFolder}>Open Skin Folder</div>
-                                <div className="dropdown-item" onClick={handleSaveSprite}>Save Sprite</div>
-                                <div className="dropdown-divider" />
-                                <div className="dropdown-item" onClick={() => handleExportFolder('bodyOnly')}>Export Folder (All in Body)</div>
-                                <div className="dropdown-item" onClick={() => handleExportFolder('split')}>Export Folder (Split Body/Head)</div>
-                                <div className="dropdown-divider" />
-                                <div className="dropdown-item" onClick={() => handleExportZip('bodyOnly')}>Export ZIP (All in Body)</div>
-                                <div className="dropdown-item" onClick={() => handleExportZip('split')}>Export ZIP (Split Body/Head)</div>
-                                <div className="dropdown-divider" />
-                                <div className="dropdown-item danger" onClick={handleResetClick}>Reset All Changes</div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="menu-wrapper" onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'view' ? null : 'view'); }}>
-                        <span className="menu-label">View</span>
-                        {activeMenu === 'view' && (
-                            <div className="dropdown-menu small">
-                                <div className="dropdown-item" onClick={() => setShowGuide(!showGuide)}>
-                                    {showGuide ? 'Hide Center Guide' : 'Show Center Guide'}
-                                </div>
-                                <div className="dropdown-item" onClick={() => setShowPixelGrid(!showPixelGrid)}>
-                                    {showPixelGrid ? 'Hide Pixel Grid' : 'Show Pixel Grid'}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
+            <TopBar 
+                skinName={skinName}
+                setSkinName={setSkinName}
+                isEditingName={isEditingName}
+                setIsEditingName={setIsEditingName}
+                activeMenu={activeMenu}
+                setActiveMenu={setActiveMenu}
+                handleOpenFolder={handleOpenFolder}
+                handleSaveSprite={handleSaveSprite}
+                handleExportFolder={handleExportFolder}
+                handleExportZip={handleExportZip}
+                handleResetClick={handleResetClick}
+                showGuide={showGuide}
+                setShowGuide={setShowGuide}
+                showPixelGrid={showPixelGrid}
+                setShowPixelGrid={setShowPixelGrid}
+            />
 
             <div className="main-content">
-                <aside className="left-panel" style={{ width: leftPanelWidth, flexShrink: 0 }}>
-                    <h3>Sprites</h3>
-                    <div className="sprite-list-container">
-                        {files.length === 0 ? (
-                            <span>No sprites loaded.</span>
-                        ) : (
-                            <ul className="sprite-list">
-                                {files.map((f, i) => {
-                                    const isMissing = isLocalLoaded && !f.handle;
-                                    const isActive = selectedSprite?.name === f.name;
-                                    let itemClass = "sprite-list-item";
-                                    if (isActive) itemClass += " active";
-                                    if (isMissing) itemClass += " missing";
-                                    else if (f.handle) itemClass += " local";
-                                    if (f.unused) itemClass += " unused";
-                                    
-                                    return (
-                                        <li key={i} 
-                                            onClick={() => handleSpriteSelect(f)}
-                                            className={itemClass}
-                                        >
-                                            <Thumbnail file={f} modifiedBlob={modifiedBlobs[f.name]} />
-                                            <span className="sprite-text">
-                                                <span className="sprite-name">{f.name}</span>
-                                                {modifiedBlobs[f.name] ? ' *' : ''} 
-                                                {isMissing ? ' (Missing)' : (f.handle ? ' (Local)' : '')}
-                                            </span>
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        )}
-                    </div>
-                </aside>
+                <LeftPanel 
+                    leftPanelWidth={leftPanelWidth}
+                    files={files}
+                    isLocalLoaded={isLocalLoaded}
+                    selectedSprite={selectedSprite}
+                    modifiedBlobs={modifiedBlobs}
+                    handleSpriteSelect={handleSpriteSelect}
+                />
 
                 <div 
                     className="resizer" 
@@ -1134,72 +1032,22 @@ function App() {
                     }} 
                 />
 
-                <main className="center-canvas" ref={containerRef}>
-                    {!selectedSprite ? (
-                        <div style={{ color: '#555' }}>Select a sprite to edit</div>
-                    ) : (
-                        <>
-                            <div className="canvas-info">
-                                {canvasSize.w} &times; {canvasSize.h} px
-                            </div>
-                            <div className="zoom-controls">
-                                <button onClick={handleAutoZoom} className="zoom-btn-auto">Auto</button>
-                                <button onClick={() => setZoom(z => Math.max(1, z - 1))} className="zoom-btn">-</button>
-                                <input 
-                                    type="range" 
-                                    min="1" max="100" 
-                                    value={zoom} 
-                                    onChange={e => setZoom(Number(e.target.value))} 
-                                    className="zoom-slider"
-                                />
-                                <span className="zoom-text">{zoom}x</span>
-                                <button onClick={() => setZoom(z => Math.min(100, z + 1))} className="zoom-btn">+</button>
-                            </div>
-                            <div className="canvas-wrapper">
-                                <div className="checkerboard" style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
-                            <canvas
-                                ref={canvasRef}
-                                className="pixel-canvas"
-                                style={{ width: '100%', height: '100%' }}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUp}
-                                onMouseLeave={handleMouseUp}
-                            />
-                            {showGuide && (
-                                <>
-                                    <div className="guide-line-v" />
-                                    <div className="guide-line-h" />
-                                </>
-                            )}
-                            {showPixelGrid && zoom > 2 && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 0, left: 0, right: 0, bottom: 0,
-                                    pointerEvents: 'none',
-                                    backgroundImage: `
-                                        linear-gradient(to right, rgba(128,128,128,0.3) 1px, transparent 1px),
-                                        linear-gradient(to bottom, rgba(128,128,128,0.3) 1px, transparent 1px)
-                                    `,
-                                    backgroundSize: `${zoom}px ${zoom}px`
-                                }} />
-                            )}
-                            {tool === 'select' && selectionBounds && (
-                                <div 
-                                    className="selection-box"
-                                    style={{
-                                        left: selectionBounds.x * zoom,
-                                        top: selectionBounds.y * zoom,
-                                        width: selectionBounds.w * zoom,
-                                        height: selectionBounds.h * zoom
-                                    }} 
-                                />
-                            )}
-                        </div>
-                        </div>
-                        </>
-                    )}
-                </main>
+                <CanvasEditor
+                    containerRef={containerRef}
+                    selectedSprite={selectedSprite}
+                    canvasSize={canvasSize}
+                    zoom={zoom}
+                    setZoom={setZoom}
+                    handleAutoZoom={handleAutoZoom}
+                    canvasRef={canvasRef}
+                    handleMouseDown={handleMouseDown}
+                    handleMouseMove={handleMouseMove}
+                    handleMouseUp={handleMouseUp}
+                    showGuide={showGuide}
+                    showPixelGrid={showPixelGrid}
+                    tool={tool}
+                    selectionBounds={selectionBounds}
+                />
 
                 <div 
                     className="resizer" 
@@ -1210,69 +1058,17 @@ function App() {
                     }} 
                 />
 
-                <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0 }}>
-                    <h3>Tools</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
-                        
-                        <div className="tools-grid">
-                            <button 
-                                onClick={() => setTool('pencil')}
-                                className={`tool-btn ${tool === 'pencil' ? 'active' : ''}`}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
-                                <span>Pen (P)</span>
-                            </button>
-                            <button 
-                                onClick={() => setTool('eraser')}
-                                className={`tool-btn ${tool === 'eraser' ? 'active' : ''}`}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"></path><line x1="16" y1="15" x2="9" y2="8"></line></svg>
-                                <span>Eraser (E)</span>
-                            </button>
-                            <button 
-                                onClick={() => setTool('fill')}
-                                className={`tool-btn ${tool === 'fill' ? 'active' : ''}`}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19.2 8.5l-4-4L4 15.7V20h4.3l10.9-11.5z"></path><path d="M2 22h20"></path><path d="M16.5 6l2 2"></path></svg>
-                                <span>Fill (F)</span>
-                            </button>
-                            <button 
-                                onClick={() => setTool('eyedropper')}
-                                className={`tool-btn ${tool === 'eyedropper' ? 'active' : ''}`}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 9.5L17 7l-2-2-2.5 2.5"></path><path d="M12 12l-7 7v3h3l7-7"></path><path d="M3 21l3-3"></path></svg>
-                                <span>Pick (I)</span>
-                            </button>
-                            <button 
-                                onClick={() => setTool('select')}
-                                className={`tool-btn ${tool === 'select' ? 'active' : ''}`}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                                <span>Select (S)</span>
-                            </button>
-                        </div>
-                        
-                        <div className="brush-size-container">
-                            <label className="brush-size-label">
-                                <div className="brush-size-header">
-                                    <span>Brush Size</span>
-                                    <span>{brushSize}px</span>
-                                </div>
-                                <input 
-                                    type="range" 
-                                    min="1" max="16" 
-                                    value={brushSize} 
-                                    onChange={e => setBrushSize(Number(e.target.value))} 
-                                    className="brush-slider"
-                                />
-                            </label>
-                        </div>
-
-                        <div className="custom-color-picker color-picker-wrapper">
-                            <SketchPicker 
-                                color={color} 
-                                onChange={(c) => setColor({ r: c.rgb.r, g: c.rgb.g, b: c.rgb.b, a: c.rgb.a ?? 1 })}
-                                presetColors={recentColors.map(rgbaToHex)}
-                                disableAlpha={false}
-                            />
-                        </div>
-                    </div>
-                </aside>
+                <RightPanel
+                    rightPanelWidth={rightPanelWidth}
+                    tool={tool}
+                    setTool={setTool}
+                    brushSize={brushSize}
+                    setBrushSize={setBrushSize}
+                    color={color}
+                    setColor={setColor}
+                    recentColors={recentColors}
+                    rgbaToHex={rgbaToHex}
+                />
             </div>
         </div>
     );

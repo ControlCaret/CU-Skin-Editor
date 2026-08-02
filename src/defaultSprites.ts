@@ -1,8 +1,4 @@
-export interface SpriteConfig {
-    name: string;
-    category: string;
-    [key: string]: any; // Allow arbitrary metadata
-}
+import type { SpriteConfig } from './types';
 
 export const defaultSprites: SpriteConfig[] = [
     { name: "experimentCrus.png", category: "Body" },
