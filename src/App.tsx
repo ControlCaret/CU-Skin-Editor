@@ -2,12 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
-import { Pencil, Eraser, Pipette, PaintBucket, SquareDashed } from 'lucide-react'
 import { SketchPicker } from 'react-color'
-
-const rgbToHex = (r: number, g: number, b: number) => {
-    return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
-};
 
 interface SpriteFile {
     name: string;
@@ -74,14 +69,16 @@ function App() {
     // Ref to hold latest state for global event listeners
     const stateRef = useRef<any>({});
     
-    const [color, setColor] = useState('#ff0000');
+    const [color, setColor] = useState({ r: 255, g: 0, b: 0, a: 1 });
+    const [recentColors, setRecentColors] = useState<{r:number,g:number,b:number,a:number}[]>([]);
+    const [brushSize, setBrushSize] = useState(1);
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLElement>(null);
     
     const [leftPanelWidth, setLeftPanelWidth] = useState(480);
-    const [rightPanelWidth, setRightPanelWidth] = useState(400);
+    const [rightPanelWidth, setRightPanelWidth] = useState(480);
     const resizingPanel = useRef<'left' | 'right' | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
@@ -360,6 +357,16 @@ function App() {
                 if (stateRef.current.undo) stateRef.current.undo();
             } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
                 copyToClipboard();
+            } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
+                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('pencil');
+            } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'e') {
+                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('eraser');
+            } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'f') {
+                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('fill');
+            } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'i') {
+                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('eyedropper');
+            } else if (!cmdOrCtrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+                if (document.activeElement?.tagName !== 'INPUT') stateRef.current.setTool('select');
             } else if (cmdOrCtrl && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 if (stateRef.current.handleSaveSprite) {
@@ -550,7 +557,7 @@ function App() {
             const ctx = canvasRef.current.getContext('2d')!;
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             if (pixel[3] > 0) {
-                setColor(rgbToHex(pixel[0], pixel[1], pixel[2]));
+                setColor({ r: pixel[0], g: pixel[1], b: pixel[2], a: pixel[3] / 255 });
             }
             return;
         }
@@ -640,6 +647,14 @@ function App() {
             setIsDrawing(false);
             pushToHistory();
             saveCanvasToMemory();
+            
+            // Save to recent colors
+            setRecentColors(prev => {
+                const exists = prev.some(c => c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
+                if (exists) return prev;
+                const newRecent = [color, ...prev];
+                return newRecent.slice(0, 14);
+            });
         }
     };
 
@@ -649,16 +664,29 @@ function App() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        if (tool === 'eraser') {
-            ctx.clearRect(x, y, 1, 1);
-        } else if (tool === 'eyedropper') {
+        if (tool === 'eyedropper') {
             const pixel = ctx.getImageData(x, y, 1, 1).data;
             if (pixel[3] > 0) { // If not transparent
-                setColor(rgbToHex(pixel[0], pixel[1], pixel[2]));
+                setColor({ r: pixel[0], g: pixel[1], b: pixel[2], a: pixel[3] / 255 });
             }
         } else {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, 1, 1);
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
+            const radius = brushSize / 2;
+            const centerOffset = brushSize % 2 === 0 ? 0.5 : 0;
+            const limit = Math.ceil(radius);
+            for (let dy = -limit; dy <= limit; dy++) {
+                for (let dx = -limit; dx <= limit; dx++) {
+                    const distSq = Math.pow(dx - centerOffset, 2) + Math.pow(dy - centerOffset, 2);
+                    // Use a slightly smaller threshold for a rounder look on small sizes
+                    if (distSq <= radius * radius) {
+                        if (tool === 'eraser') {
+                            ctx.clearRect(x + dx, y + dy, 1, 1);
+                        } else {
+                            ctx.fillRect(x + dx, y + dy, 1, 1);
+                        }
+                    }
+                }
+            }
         }
     };
 
@@ -686,28 +714,20 @@ function App() {
         const startB = data[startIdx + 2];
         const startA = data[startIdx + 3];
 
-        const hexToRgb = (hex: string) => {
-            const bigint = parseInt(hex.slice(1), 16);
-            return {
-                r: (bigint >> 16) & 255,
-                g: (bigint >> 8) & 255,
-                b: bigint & 255
-            };
-        };
-        const targetColor = hexToRgb(color);
-
+        const targetA = Math.round(color.a * 255);
+        
         // Avoid infinite loop if clicking on same color
-        if (startR === targetColor.r && startG === targetColor.g && startB === targetColor.b && startA === 255) return;
+        if (startR === color.r && startG === color.g && startB === color.b && startA === targetA) return;
 
         const matchStartColor = (idx: number) => {
             return data[idx] === startR && data[idx + 1] === startG && data[idx + 2] === startB && data[idx + 3] === startA;
         };
 
         const colorPixel = (idx: number) => {
-            data[idx] = targetColor.r;
-            data[idx + 1] = targetColor.g;
-            data[idx + 2] = targetColor.b;
-            data[idx + 3] = 255;
+                data[idx] = color.r;
+                data[idx + 1] = color.g;
+                data[idx + 2] = color.b;
+                data[idx + 3] = targetA;
         };
 
         colorPixel(startIdx);
@@ -902,6 +922,12 @@ function App() {
                 }
             }
         }, 10);
+    };
+
+    const rgbaToHex = (c: {r:number,g:number,b:number,a:number}) => {
+        const toHex = (n: number) => Math.round(n).toString(16).padStart(2, '0').toUpperCase();
+        if (c.a === 1) return `#${toHex(c.r)}${toHex(c.g)}${toHex(c.b)}`;
+        return `#${toHex(c.r)}${toHex(c.g)}${toHex(c.b)}${toHex(c.a * 255)}`;
     };
 
     // Update stateRef every render so global listeners have access to latest state/functions
@@ -1122,84 +1148,88 @@ function App() {
 
                 <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0 }}>
                     <h3>Tools</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(70px, 1fr))', gap: '10px' }}>
                             <button 
                                 onClick={() => setTool('pencil')}
                                 style={{ 
-                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
-                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'pencil' ? '#4CAF50' : '#333',
-                                    color: tool === 'pencil' ? '#fff' : '#aaa',
-                                    boxShadow: tool === 'pencil' ? '0 0 10px rgba(76, 175, 80, 0.5)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <Pencil size={24} />
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pencil</span>
+                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'pencil' ? '#00ffcc' : '#333',
+                                    color: tool === 'pencil' ? '#000' : '#fff'
+                                }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pen (P)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('eraser')}
                                 style={{ 
-                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
-                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'eraser' ? '#F44336' : '#333',
-                                    color: tool === 'eraser' ? '#fff' : '#aaa',
-                                    boxShadow: tool === 'eraser' ? '0 0 10px rgba(244, 67, 54, 0.5)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <Eraser size={24} />
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Eraser</span>
+                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'eraser' ? '#00ffcc' : '#333',
+                                    color: tool === 'eraser' ? '#000' : '#fff'
+                                }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20H20V20Z"></path><line x1="16" y1="15" x2="9" y2="8"></line></svg>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Eraser (E)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('fill')}
                                 style={{ 
-                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
-                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'fill' ? '#FF9800' : '#333',
-                                    color: tool === 'fill' ? '#fff' : '#aaa',
-                                    boxShadow: tool === 'fill' ? '0 0 10px rgba(255, 152, 0, 0.5)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <PaintBucket size={24} />
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Fill</span>
+                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'fill' ? '#00ffcc' : '#333',
+                                    color: tool === 'fill' ? '#000' : '#fff'
+                                }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19.2 8.5l-4-4L4 15.7V20h4.3l10.9-11.5z"></path><path d="M2 22h20"></path><path d="M16.5 6l2 2"></path></svg>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Fill (F)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('eyedropper')}
                                 style={{ 
-                                    flex: '1 1 30%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
-                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'eyedropper' ? '#2196F3' : '#333',
-                                    color: tool === 'eyedropper' ? '#fff' : '#aaa',
-                                    boxShadow: tool === 'eyedropper' ? '0 0 10px rgba(33, 150, 243, 0.5)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <Pipette size={24} />
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pick</span>
+                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'eyedropper' ? '#00ffcc' : '#333',
+                                    color: tool === 'eyedropper' ? '#000' : '#fff'
+                                }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 9.5L17 7l-2-2-2.5 2.5"></path><path d="M12 12l-7 7v3h3l7-7"></path><path d="M3 21l3-3"></path></svg>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pick (I)</span>
                             </button>
                             <button 
                                 onClick={() => setTool('select')}
                                 style={{ 
-                                    flex: '1 1 30%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
-                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
-                                    backgroundColor: tool === 'select' ? '#9C27B0' : '#333',
-                                    color: tool === 'select' ? '#fff' : '#aaa',
-                                    boxShadow: tool === 'select' ? '0 0 10px rgba(156, 39, 176, 0.5)' : 'none',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <SquareDashed size={24} />
-                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Select</span>
+                                    aspectRatio: '1 / 1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                                    borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'select' ? '#00ffcc' : '#333',
+                                    color: tool === 'select' ? '#000' : '#fff'
+                                }}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="4 4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Select (S)</span>
                             </button>
                         </div>
+                        
+                        <div style={{ marginTop: '5px', padding: '10px', backgroundColor: '#333', borderRadius: '8px' }}>
+                            <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                    <span>Brush Size</span>
+                                    <span>{brushSize}px</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="1" max="16" 
+                                    value={brushSize} 
+                                    onChange={e => setBrushSize(Number(e.target.value))} 
+                                    style={{ width: '100%', margin: '0', cursor: 'pointer' }}
+                                />
+                            </label>
+                        </div>
+
                         <div className="custom-color-picker" style={{ width: '100%', marginBottom: '10px' }}>
                             <SketchPicker 
                                 color={color} 
-                                onChange={(c) => setColor(c.hex)}
-                                disableAlpha={true}
+                                onChange={(c) => setColor({ r: c.rgb.r, g: c.rgb.g, b: c.rgb.b, a: c.rgb.a ?? 1 })}
+                                presetColors={recentColors.map(rgbaToHex)}
+                                disableAlpha={false}
                             />
                         </div>
                     </div>
