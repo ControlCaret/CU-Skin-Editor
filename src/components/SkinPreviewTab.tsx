@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { SpriteFile } from '../types';
-import { defaultSkeleton, poses } from '../utils/skeleton';
+import { defaultSkeleton, poses, calculateAnimatedSkeleton } from '../utils/skeleton';
+import type { AnimationType } from '../utils/skeleton';
 
 interface SkinPreviewTabProps {
     modifiedBlobs: Record<string, Blob>;
@@ -12,8 +13,14 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
 
     const [debugBoneId, setDebugBoneId] = useState<string>('upTorso');
     const [currentPose, setCurrentPose] = useState<string>('standing');
+    const [animation, setAnimation] = useState<AnimationType>('idle');
+    const [time, setTime] = useState<number>(0);
+    const timeRef = useRef<number>(0);
+    const requestRef = useRef<number | undefined>(undefined);
     const [debugOffsetX, setDebugOffsetX] = useState(0);
     const [debugOffsetY, setDebugOffsetY] = useState(0);
+    const [debugPivotX, setDebugPivotX] = useState(0);
+    const [debugPivotY, setDebugPivotY] = useState(0);
     const [debugZoom, setDebugZoom] = useState(8);
 
     const imagesRef = useRef<Record<string, HTMLImageElement>>({});
@@ -24,6 +31,8 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
         if (bone) {
             setDebugOffsetX(bone.offsetX);
             setDebugOffsetY(bone.offsetY);
+            setDebugPivotX(bone.pivotX || 0);
+            setDebugPivotY(bone.pivotY || 0);
         }
     }, [debugBoneId]);
 
@@ -52,11 +61,39 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
             });
 
             await Promise.all(promises);
-            drawSkeleton();
+            // Initial draw will be handled by the draw effect
         };
 
         loadImages();
-    }, [modifiedBlobs, files, debugOffsetX, debugOffsetY, debugZoom, debugBoneId, currentPose]);
+    }, [modifiedBlobs, files]);
+
+    useEffect(() => {
+        drawSkeleton();
+    }, [time, debugOffsetX, debugOffsetY, debugPivotX, debugPivotY, debugZoom, debugBoneId, currentPose, animation, modifiedBlobs]);
+
+    // Animation loop
+    useEffect(() => {
+        let lastTimestamp: number | null = null;
+        
+        const animate = (timestamp: number) => {
+            if (lastTimestamp === null) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000; // seconds
+            lastTimestamp = timestamp;
+            
+            if (animation !== 'none') {
+                timeRef.current += deltaTime;
+                setTime(timeRef.current);
+            }
+            
+            requestRef.current = requestAnimationFrame(animate);
+        };
+        
+        requestRef.current = requestAnimationFrame(animate);
+        
+        return () => {
+            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        };
+    }, [animation]);
 
     const drawSkeleton = () => {
         const canvas = canvasRef.current;
@@ -74,6 +111,18 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
         ctx.imageSmoothingEnabled = false;
 
         const activeBonesForThisStep = defaultSkeleton.map(b => b.id);
+        
+        const currentPoseData = poses[currentPose] || { name: 'None', bones: {} };
+        
+        // Apply debug offsets to the base skeleton BEFORE animation
+        const baseSkeleton = defaultSkeleton.map(b => {
+            if (b.id === debugBoneId) {
+                return { ...b, offsetX: debugOffsetX, offsetY: debugOffsetY, pivotX: debugPivotX, pivotY: debugPivotY };
+            }
+            return b;
+        });
+
+        const animatedSkeleton = calculateAnimatedSkeleton(baseSkeleton, currentPoseData, animation, time);
 
         // Calculate global transforms
         const transforms: Record<string, { x: number, y: number, r: number }> = {};
@@ -81,20 +130,12 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
         const getTransform = (boneId: string): { x: number, y: number, r: number } => {
             if (transforms[boneId]) return transforms[boneId];
             
-            const bone = defaultSkeleton.find(b => b.id === boneId);
+            const bone = animatedSkeleton.find(b => b.id === boneId);
             if (!bone) return { x: 0, y: 0, r: 0 };
 
-            let ox = bone.id === debugBoneId ? debugOffsetX : bone.offsetX;
-            let oy = bone.id === debugBoneId ? debugOffsetY : bone.offsetY;
+            let ox = bone.offsetX;
+            let oy = bone.offsetY;
             let r = bone.rotation;
-
-            // Apply pose overrides
-            const poseOverride = poses[currentPose]?.bones?.[boneId];
-            if (poseOverride) {
-                if (poseOverride.offsetX !== undefined) ox += poseOverride.offsetX;
-                if (poseOverride.offsetY !== undefined) oy += poseOverride.offsetY;
-                if (poseOverride.rotation !== undefined) r += poseOverride.rotation;
-            }
 
             if (!bone.parentId) {
                 transforms[boneId] = { x: ox, y: oy, r: r };
@@ -110,10 +151,10 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
         };
 
         // Precompute all transforms
-        defaultSkeleton.forEach(b => getTransform(b.id));
+        animatedSkeleton.forEach(b => getTransform(b.id));
 
         // Sort by zIndex to draw back-to-front
-        const sortedBones = [...defaultSkeleton]
+        const sortedBones = [...animatedSkeleton]
             .filter(b => activeBonesForThisStep.includes(b.id))
             .sort((a, b) => a.zIndex - b.zIndex);
 
@@ -126,7 +167,17 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
                 ctx.translate(t.x, t.y);
                 ctx.rotate(t.r);
                 
-                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                const px = bone.pivotX || 0;
+                const py = bone.pivotY || 0;
+                ctx.drawImage(img, -img.width / 2 - px, -img.height / 2 - py);
+                
+                // Draw pivot point for debugging
+                if (bone.id === debugBoneId) {
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
                 
                 ctx.restore();
             }
@@ -165,6 +216,25 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
                     </div>
 
                     <div className="debug-control" style={{ marginBottom: 15 }}>
+                        <label style={{ fontWeight: 'bold' }}>Animation:</label>
+                        <select 
+                            value={animation} 
+                            onChange={e => {
+                                setAnimation(e.target.value as AnimationType);
+                                if (e.target.value === 'none') {
+                                    timeRef.current = 0;
+                                    setTime(0);
+                                }
+                            }}
+                            style={{ marginLeft: 10, padding: 4 }}
+                        >
+                            <option value="none">None</option>
+                            <option value="idle">Idle (Breathing)</option>
+                            <option value="walk">Walk (Sine wave)</option>
+                        </select>
+                    </div>
+
+                    <div className="debug-control" style={{ marginBottom: 15 }}>
                         <label style={{ fontWeight: 'bold' }}>Target Bone:</label>
                         <select 
                             value={debugBoneId} 
@@ -197,6 +267,28 @@ export function SkinPreviewTab({ modifiedBlobs, files }: SkinPreviewTabProps) {
                             style={{ flex: 1 }}
                         />
                     </div>
+                    <hr style={{ margin: '15px 0', borderColor: '#444' }} />
+                    <div className="debug-control" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <label style={{ width: 80 }}>Pivot X: {debugPivotX}</label>
+                        <input 
+                            type="range" 
+                            min="-50" max="50" 
+                            value={debugPivotX} 
+                            onChange={e => setDebugPivotX(Number(e.target.value))} 
+                            style={{ flex: 1 }}
+                        />
+                    </div>
+                    <div className="debug-control" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <label style={{ width: 80 }}>Pivot Y: {debugPivotY}</label>
+                        <input 
+                            type="range" 
+                            min="-50" max="50" 
+                            value={debugPivotY} 
+                            onChange={e => setDebugPivotY(Number(e.target.value))} 
+                            style={{ flex: 1 }}
+                        />
+                    </div>
+                    <hr style={{ margin: '15px 0', borderColor: '#444' }} />
                     <div className="debug-control" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <label style={{ width: 80 }}>Zoom: {debugZoom}x</label>
                         <input 
