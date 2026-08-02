@@ -85,6 +85,14 @@ function App() {
     const resizingPanel = useRef<'left' | 'right' | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [showGuide, setShowGuide] = useState(false);
+    const [activeMenu, setActiveMenu] = useState<string | null>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setActiveMenu(null);
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         const preloadedFiles = defaultSprites.map(path => {
@@ -948,21 +956,32 @@ function App() {
                         </span>
                     )}
                 </div>
-                <span className="menu-item" onClick={handleOpenFolder} style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                    [Open Skin Folder]
-                </span>
-                <span className="menu-item" onClick={handleSaveSprite} style={{ color: '#2196F3', fontWeight: 'bold' }}>
-                    [Save Sprite]
-                </span>
-                <span className="menu-item" onClick={handleExportZip} style={{ color: '#FF9800', fontWeight: 'bold' }}>
-                    [Export Skin (ZIP)]
-                </span>
-                <span className="menu-item" onClick={() => setShowGuide(!showGuide)} style={{ color: '#00ffcc', fontWeight: 'bold' }}>
-                    [Toggle Guide]
-                </span>
-                <span className="menu-item" onClick={handleResetClick} style={{ color: '#F44336', fontWeight: 'bold' }}>
-                    [Reset All Changes]
-                </span>
+
+                <div style={{ display: 'flex', gap: '20px', marginLeft: '20px' }}>
+                    <div style={{ position: 'relative' }} onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'file' ? null : 'file'); }}>
+                        <span style={{ cursor: 'pointer', fontWeight: 'bold' }}>File</span>
+                        {activeMenu === 'file' && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '10px', backgroundColor: '#333', border: '1px solid #444', borderRadius: '4px', padding: '5px 0', minWidth: '180px', zIndex: 100, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                                <div className="dropdown-item" onClick={handleOpenFolder}>Open Skin Folder</div>
+                                <div className="dropdown-item" onClick={handleSaveSprite}>Save Sprite</div>
+                                <div className="dropdown-item" onClick={handleExportZip}>Export Skin (ZIP)</div>
+                                <div style={{ height: '1px', backgroundColor: '#444', margin: '5px 0' }} />
+                                <div className="dropdown-item" style={{ color: '#ff6b6b' }} onClick={handleResetClick}>Reset All Changes</div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={{ position: 'relative' }} onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === 'view' ? null : 'view'); }}>
+                        <span style={{ cursor: 'pointer', fontWeight: 'bold' }}>View</span>
+                        {activeMenu === 'view' && (
+                            <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '10px', backgroundColor: '#333', border: '1px solid #444', borderRadius: '4px', padding: '5px 0', minWidth: '150px', zIndex: 100, display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+                                <div className="dropdown-item" onClick={() => setShowGuide(!showGuide)}>
+                                    {showGuide ? 'Hide Center Guide' : 'Show Center Guide'}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </header>
 
             <div className="main-content">

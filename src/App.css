@@ -16,6 +16,18 @@
     border-bottom: 1px solid #333;
 }
 
+.dropdown-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background-color: #4CAF50;
+}
+
 .menu-item {
     margin-right: 15px;
     cursor: pointer;
