@@ -525,6 +525,7 @@ function App() {
     }, [tool]);
 
     const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (e.button !== 0) return;
         if (!canvasRef.current) return;
         const { x, y } = getCoords(e);
 
