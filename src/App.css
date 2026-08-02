@@ -135,3 +135,11 @@ h3 {
     margin-top: 1px !important;
     border-radius: 2px !important;
 }
+
+/* Make input labels (hex, r, g, b, a) visible against the dark background */
+.custom-color-picker .sketch-picker label {
+    color: #aaa !important;
+    text-transform: uppercase !important;
+    font-weight: bold !important;
+    padding-top: 4px !important;
+}
