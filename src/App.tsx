@@ -167,13 +167,12 @@ function App() {
             const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             historyRef.current = { stack: [initialData], index: 0 };
 
-            // Auto-calculate optimal zoom to fit container
             if (containerRef.current) {
-                const pad = 180; // Padding
+                const pad = 180;
                 const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / img.width);
                 const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / img.height);
                 const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
-                setZoom(Math.min(100, fitZoom)); // Clamp max auto-zoom to 100x
+                setZoom(Math.min(100, fitZoom));
             }
         };
 
@@ -223,7 +222,7 @@ function App() {
 
         const handleWheel = (e: WheelEvent) => {
             if (e.ctrlKey) {
-                e.preventDefault(); // Stop browser from zooming
+                e.preventDefault();
                 if (e.deltaY < 0) setZoom(z => Math.min(100, z + 1));
                 else setZoom(z => Math.max(1, z - 1));
             }
@@ -399,14 +398,12 @@ function App() {
                 const { selectionBounds, selectionData, saveCanvasToMemory } = stateRef.current;
                 if (selectionBounds) {
                     if (selectionData) {
-                        // Already floating, just discard it to leave the hole
                         stateRef.current.setSelectionData(null);
                         stateRef.current.setSelectionBounds(null);
                         stateRef.current.setCanvasBackup(null);
                         stateRef.current.setIsDraggingSelection(false);
                         saveCanvasToMemory();
                     } else if (canvasRef.current) {
-                        // Not floating, erase pixels in the box
                         const ctx = canvasRef.current.getContext('2d')!;
                         ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
                         stateRef.current.setSelectionBounds(null);
@@ -423,11 +420,7 @@ function App() {
                     
                     if (!currentData) {
                         currentData = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
-                        
-                        // Clear selected area in the original canvas.
                         ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
-                        
-                        // Save canvas state with the cleared area.
                         backup = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
                         
                         stateRef.current.setSelectionData(currentData);
@@ -468,10 +461,8 @@ function App() {
                 
                 if (canvasBackup && canvasRef.current) {
                     const ctx = canvasRef.current.getContext('2d')!;
-                    // Restore background state.
                     ctx.putImageData(canvasBackup, 0, 0);
                     
-                    // Revert manually cut pixels to original bounds.
                     if (!isPastedSelection && selectionData && originalSelectionBounds) {
                         const offscreen = document.createElement('canvas');
                         offscreen.width = originalSelectionBounds.w;
@@ -576,10 +567,8 @@ function App() {
                     const data = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
                     setSelectionData(data);
                     
-                    // Clear selected area in the original canvas.
                     ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
                     
-                    // Save canvas state with the cleared area for dragging.
                     setCanvasBackup(ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
                     
                     setOriginalSelectionBounds({ ...selectionBounds });
@@ -641,14 +630,12 @@ function App() {
             }
         } else if (isDraggingSelection) {
             setIsDraggingSelection(false);
-            // Do not overwrite canvasBackup to prevent stamping on multiple moves.
             saveCanvasToMemory();
         } else if (isDrawing) {
             setIsDrawing(false);
             pushToHistory();
             saveCanvasToMemory();
             
-            // Save to recent colors
             setRecentColors(prev => {
                 const exists = prev.some(c => c.r === color.r && c.g === color.g && c.b === color.b && c.a === color.a);
                 if (exists) return prev;

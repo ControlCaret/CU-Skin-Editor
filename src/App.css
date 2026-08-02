@@ -110,3 +110,28 @@ h3 {
 .custom-color-picker .sketch-picker > div:first-child {
     padding-bottom: 100% !important;
 }
+
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(1) > div {
+    height: 16px !important;
+    border-radius: 4px !important;
+    margin-bottom: 6px !important;
+}
+
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(1) > div > div {
+    border-radius: 4px !important;
+}
+
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(2),
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(2) > div,
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(2) > div > div {
+    height: 38px !important;
+    width: 38px !important;
+    border-radius: 4px !important;
+}
+
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(1) > div > div > div > div > div,
+.custom-color-picker .sketch-picker > div:nth-child(2) > div:nth-child(1) > div > div > div:nth-child(3) > div > div {
+    height: 14px !important;
+    margin-top: 1px !important;
+    border-radius: 2px !important;
+}
