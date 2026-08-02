@@ -84,6 +84,7 @@ function App() {
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const resizingPanel = useRef<'left' | 'right' | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
+    const [showGuide, setShowGuide] = useState(false);
 
     useEffect(() => {
         const preloadedFiles = defaultSprites.map(path => {
@@ -956,6 +957,9 @@ function App() {
                 <span className="menu-item" onClick={handleExportZip} style={{ color: '#FF9800', fontWeight: 'bold' }}>
                     [Export Skin (ZIP)]
                 </span>
+                <span className="menu-item" onClick={() => setShowGuide(!showGuide)} style={{ color: '#00ffcc', fontWeight: 'bold' }}>
+                    [Toggle Guide]
+                </span>
                 <span className="menu-item" onClick={handleResetClick} style={{ color: '#F44336', fontWeight: 'bold' }}>
                     [Reset All Changes]
                 </span>
@@ -1008,7 +1012,7 @@ function App() {
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
+                        <div className="checkerboard" style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
                             <canvas
                                 ref={canvasRef}
                                 className="pixel-canvas"
@@ -1018,6 +1022,12 @@ function App() {
                                 onMouseUp={handleMouseUp}
                                 onMouseLeave={handleMouseUp}
                             />
+                            {showGuide && (
+                                <>
+                                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: '1px', backgroundColor: '#00ffcc', pointerEvents: 'none', mixBlendMode: 'difference' }} />
+                                    <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', backgroundColor: '#00ffcc', pointerEvents: 'none', mixBlendMode: 'difference' }} />
+                                </>
+                            )}
                             {tool === 'select' && selectionBounds && (
                                 <div style={{
                                     position: 'absolute',

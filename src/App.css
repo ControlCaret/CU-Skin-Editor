@@ -78,3 +78,10 @@ h3 {
     border: 1px solid #444; /* Just to see the boundary */
     background-color: transparent; /* Assuming sprites have transparency */
 }
+
+.checkerboard {
+    background-color: #2a2a2a;
+    background-image: conic-gradient(#1a1a1a 90deg, transparent 90deg 180deg, #1a1a1a 180deg 270deg, transparent 270deg);
+    background-size: 16px 16px;
+    background-position: 0 0;
+}
