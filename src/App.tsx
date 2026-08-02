@@ -959,14 +959,25 @@ function App() {
             if (window.confirm("Are you sure you want to discard all changes and reset? This cannot be undone.")) {
                 setModifiedBlobs({});
                 setSkinName("Original");
+                
+                const preloadedFiles = defaultSprites.map(sprite => ({
+                    ...sprite,
+                    name: sprite.name,
+                    path: `/Original/Body/${sprite.name}`,
+                    handle: undefined
+                }));
+                setFiles(preloadedFiles);
+                setIsLocalLoaded(false);
+                
                 localStorage.removeItem('cu-skin-editor-blobs');
                 localStorage.removeItem('cu-skin-editor-skinName');
                 if (selectedSprite && canvasRef.current) {
                     const canvas = canvasRef.current;
                     const ctx = canvas.getContext('2d');
                     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    // Force reload from original file
-                    setSelectedSprite({ ...selectedSprite }); 
+                    // Force reload from original default file
+                    const defaultMatch = preloadedFiles.find(s => s.name === selectedSprite.name);
+                    setSelectedSprite(defaultMatch ? { ...defaultMatch } : null); 
                 }
             }
         }, 10);
