@@ -154,6 +154,13 @@ h3 {
 .sprite-list-item.missing {
     color: #ff6b6b;
 }
+.sprite-list-item.unused .sprite-name {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+.sprite-list-item.unused .sprite-text::after {
+    content: ' (Unused)';
+}
 
 /* Center Canvas */
 .center-canvas {

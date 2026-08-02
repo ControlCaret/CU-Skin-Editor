@@ -1023,6 +1023,7 @@ function App() {
                                     if (isActive) itemClass += " active";
                                     if (isMissing) itemClass += " missing";
                                     else if (f.handle) itemClass += " local";
+                                    if (f.unused) itemClass += " unused";
                                     
                                     return (
                                         <li key={i} 
@@ -1030,7 +1031,11 @@ function App() {
                                             className={itemClass}
                                         >
                                             <Thumbnail file={f} modifiedBlob={modifiedBlobs[f.name]} />
-                                            <span>{f.name} {modifiedBlobs[f.name] ? '*' : ''} {isMissing ? '(Missing)' : (f.handle ? '(Local)' : '')}</span>
+                                            <span className="sprite-text">
+                                                <span className="sprite-name">{f.name}</span>
+                                                {modifiedBlobs[f.name] ? ' *' : ''} 
+                                                {isMissing ? ' (Missing)' : (f.handle ? ' (Local)' : '')}
+                                            </span>
                                         </li>
                                     );
                                 })}
