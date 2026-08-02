@@ -8,6 +8,7 @@ interface SpriteFile {
     name: string;
     path: string; // URL for the default fallback sprite
     handle?: any; // FileSystemFileHandle if loaded from local
+    category?: string; // Logical folder categorization
     [key: string]: any; // Allow arbitrary metadata
 }
 
@@ -95,12 +96,11 @@ function App() {
 
     useEffect(() => {
         const preloadedFiles = defaultSprites.map(sprite => {
-            const parts = sprite.path.split('/');
-            const name = parts[parts.length - 1];
+            const name = sprite.name;
             return {
                 ...sprite,
                 name,
-                path: `/${sprite.path}`,
+                path: `/Original/Body/${name}`,
                 handle: undefined
             };
         });
@@ -810,14 +810,13 @@ function App() {
 
             // Merge found files with mandatory defaults
             const mergedFiles = defaultSprites.map(sprite => {
-                const parts = sprite.path.split('/');
-                const name = parts[parts.length - 1];
+                const name = sprite.name;
                 const localMatch = pngFiles.find(f => f.name === name);
                 
                 return {
                     ...sprite,
                     name,
-                    path: `/${sprite.path}`, // Fallback URL for missing local files
+                    path: `/Original/Body/${name}`, // Fallback URL for missing local files
                     handle: localMatch ? localMatch.handle : undefined
                 };
             });
@@ -874,10 +873,10 @@ function App() {
         }
     };
 
-    const handleExportZip = async () => {
+    const handleExportZip = async (mode: 'bodyOnly' | 'split') => {
         const zip = new JSZip();
-        const bodyFolder = zip.folder(`${skinName}/Body`);
-        if (!bodyFolder) return;
+        const baseFolder = zip.folder(skinName);
+        if (!baseFolder) return;
 
         // Capture current canvas state if something is selected
         let currentBlob: Blob | null = null;
@@ -902,7 +901,18 @@ function App() {
                     blobToZip = await res.blob();
                 }
             }
-            bodyFolder.file(file.name, blobToZip);
+
+            let folderName = 'Body';
+            if (mode === 'split') {
+                if (file.category) {
+                    folderName = file.category;
+                }
+            }
+
+            const targetFolder = baseFolder.folder(folderName);
+            if (targetFolder) {
+                targetFolder.file(file.name, blobToZip);
+            }
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -1001,7 +1011,8 @@ function App() {
                             <div className="dropdown-menu">
                                 <div className="dropdown-item" onClick={handleOpenFolder}>Open Skin Folder</div>
                                 <div className="dropdown-item" onClick={handleSaveSprite}>Save Sprite</div>
-                                <div className="dropdown-item" onClick={handleExportZip}>Export Skin (ZIP)</div>
+                                <div className="dropdown-item" onClick={() => handleExportZip('bodyOnly')}>Export ZIP (All in Body)</div>
+                                <div className="dropdown-item" onClick={() => handleExportZip('split')}>Export ZIP (Split Body/Head)</div>
                                 <div className="dropdown-divider" />
                                 <div className="dropdown-item danger" onClick={handleResetClick}>Reset All Changes</div>
                             </div>
