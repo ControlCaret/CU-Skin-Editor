@@ -65,6 +65,8 @@ function App() {
     const [selectionData, setSelectionData] = useState<ImageData | null>(null);
     const [canvasBackup, setCanvasBackup] = useState<ImageData | null>(null);
     const [dragOffset, setDragOffset] = useState<{x: number, y: number} | null>(null);
+    const [isPastedSelection, setIsPastedSelection] = useState(false);
+    const [originalSelectionBounds, setOriginalSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     
     // Ref to hold latest state for global event listeners
     const stateRef = useRef<any>({});
@@ -296,6 +298,11 @@ function App() {
             
             if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
                 copyToClipboard();
+            } else if (cmdOrCtrl && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                if (stateRef.current.handleSaveSprite) {
+                    stateRef.current.handleSaveSprite();
+                }
             } else if (cmdOrCtrl && e.key.toLowerCase() === 'a') {
                 e.preventDefault();
                 stateRef.current.setTool('select');
@@ -347,10 +354,17 @@ function App() {
                     
                     if (!currentData) {
                         currentData = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                        
+                        // Clear selected area in the original canvas.
                         ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                        
+                        // Save canvas state with the cleared area.
                         backup = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+                        
                         stateRef.current.setSelectionData(currentData);
                         stateRef.current.setCanvasBackup(backup);
+                        stateRef.current.setOriginalSelectionBounds({ ...selectionBounds });
+                        stateRef.current.setIsPastedSelection(false);
                         stateRef.current.setIsDraggingSelection(true);
                     }
                     
@@ -373,23 +387,40 @@ function App() {
                     
                     stateRef.current.setSelectionBounds({ ...selectionBounds, x: newX, y: newY });
                 }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                stateRef.current.commitSelection();
+                stateRef.current.setSelectionBounds(null);
+                stateRef.current.setIsDrawingSelection(false);
+                stateRef.current.setIsDraggingSelection(false);
             } else if (e.key === 'Escape') {
-                const { canvasBackup } = stateRef.current;
+                e.preventDefault();
+                const { canvasBackup, isPastedSelection, selectionData, originalSelectionBounds, saveCanvasToMemory } = stateRef.current;
+                
                 if (canvasBackup && canvasRef.current) {
-                    canvasRef.current.getContext('2d')!.putImageData(canvasBackup, 0, 0);
+                    const ctx = canvasRef.current.getContext('2d')!;
+                    // Restore background state.
+                    ctx.putImageData(canvasBackup, 0, 0);
+                    
+                    // Revert manually cut pixels to original bounds.
+                    if (!isPastedSelection && selectionData && originalSelectionBounds) {
+                        const offscreen = document.createElement('canvas');
+                        offscreen.width = originalSelectionBounds.w;
+                        offscreen.height = originalSelectionBounds.h;
+                        offscreen.getContext('2d')!.putImageData(selectionData, 0, 0);
+                        ctx.drawImage(offscreen, originalSelectionBounds.x, originalSelectionBounds.y);
+                    }
                 }
+                
                 stateRef.current.setSelectionBounds(null);
                 stateRef.current.setSelectionData(null);
                 stateRef.current.setCanvasBackup(null);
                 stateRef.current.setIsDraggingSelection(false);
                 stateRef.current.setIsDrawingSelection(false);
-                // Trigger a re-render/save
-                if (canvasRef.current && selectedSprite) {
-                    canvasRef.current.toBlob((blob) => {
-                        if (blob) {
-                            setModifiedBlobs(prev => ({ ...prev, [selectedSprite.name]: blob }));
-                        }
-                    }, 'image/png');
+                stateRef.current.setIsPastedSelection(false);
+                stateRef.current.setOriginalSelectionBounds(null);
+                if (saveCanvasToMemory) {
+                    saveCanvasToMemory();
                 }
             }
         };
@@ -421,6 +452,8 @@ function App() {
                                 setSelectionBounds({ x: startX, y: startY, w: img.width, h: img.height });
                                 setSelectionData(data);
                                 setCanvasBackup(ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
+                                setIsPastedSelection(true);
+                                setOriginalSelectionBounds(null);
                                 setIsDraggingSelection(false);
                                 
                                 ctx.drawImage(tempCanvas, startX, startY);
@@ -451,6 +484,15 @@ function App() {
         if (!canvasRef.current) return;
         const { x, y } = getCoords(e);
 
+        if (e.altKey) {
+            const ctx = canvasRef.current.getContext('2d')!;
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            if (pixel[3] > 0) {
+                setColor(rgbToHex(pixel[0], pixel[1], pixel[2]));
+            }
+            return;
+        }
+
         if (tool === 'fill') {
             floodFill(e);
             saveCanvasToMemory();
@@ -463,8 +505,15 @@ function App() {
                 if (!selectionData) {
                     const data = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
                     setSelectionData(data);
+                    
+                    // Clear selected area in the original canvas.
                     ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                    
+                    // Save canvas state with the cleared area for dragging.
                     setCanvasBackup(ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
+                    
+                    setOriginalSelectionBounds({ ...selectionBounds });
+                    setIsPastedSelection(false);
                 }
                 setIsDraggingSelection(true);
                 setDragOffset({ x: x - selectionBounds.x, y: y - selectionBounds.y });
@@ -793,10 +842,11 @@ function App() {
 
     // Update stateRef every render so global listeners have access to latest state/functions
     stateRef.current = {
-        selectionData, selectionBounds, tool, canvasBackup,
+        selectionData, selectionBounds, tool, canvasBackup, isPastedSelection, originalSelectionBounds,
         setTool, setSelectionBounds, setSelectionData, 
         setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
-        commitSelection, saveCanvasToMemory
+        setIsPastedSelection, setOriginalSelectionBounds,
+        commitSelection, saveCanvasToMemory, handleSaveSprite
     };
 
     return (
