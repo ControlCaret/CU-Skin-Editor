@@ -1,4 +1,4 @@
-import { SpriteConfig } from './types';
+import type { SpriteConfig } from './types';
 
 export const defaultSprites: SpriteConfig[] = [
     { name: "experimentCrus.png", category: "Body" },

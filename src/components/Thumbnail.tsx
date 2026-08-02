@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SpriteFile } from '../types';
+import type { SpriteFile } from '../types';
 
 export function Thumbnail({ file, modifiedBlob }: { file: SpriteFile, modifiedBlob?: Blob }) {
     const [src, setSrc] = useState<string>('');
