@@ -17,29 +17,29 @@ export interface SkeletonPose {
 
 // Default standing pose skeleton definition
 export const defaultSkeleton: Bone[] = [
-    { id: "tail", spriteName: "experimentTail.png", parentId: "downTorso", offsetX: 0, offsetY: 15, rotation: 0, zIndex: 0 },
+    { id: "tail", spriteName: "experimentTail.png", parentId: "downTorso", offsetX: -1, offsetY: 3, rotation: 0, zIndex: 0 },
     
-    { id: "backThigh", spriteName: "experimentThigh.png", parentId: "downTorso", offsetX: 5, offsetY: 5, rotation: 0, zIndex: 1, isAnimated: true },
-    { id: "backCrus", spriteName: "experimentCrus.png", parentId: "backThigh", offsetX: 0, offsetY: 10, rotation: 0, zIndex: 1, isAnimated: true },
-    { id: "backFoot", spriteName: "experimentFoot.png", parentId: "backCrus", offsetX: 0, offsetY: 10, rotation: 0, zIndex: 1 },
+    { id: "backThigh", spriteName: "experimentThigh.png", parentId: "downTorso", offsetX: -1, offsetY: 7, rotation: 0, zIndex: 1, isAnimated: true },
+    { id: "backCrus", spriteName: "experimentCrus.png", parentId: "backThigh", offsetX: 1, offsetY: 7, rotation: 0, zIndex: 0.5, isAnimated: true },
+    { id: "backFoot", spriteName: "experimentFoot.png", parentId: "backCrus", offsetX: -1, offsetY: 7, rotation: 0, zIndex: 0 },
     
-    { id: "backUpArm", spriteName: "experimentUpArm.png", parentId: "upTorso", offsetX: 6, offsetY: 0, rotation: 0, zIndex: 2, isAnimated: true },
-    { id: "backDownArm", spriteName: "experimentDownArm.png", parentId: "backUpArm", offsetX: 0, offsetY: 12, rotation: 0, zIndex: 2, isAnimated: true },
-    { id: "handB", spriteName: "experimentHandB.png", parentId: "backDownArm", offsetX: 0, offsetY: 12, rotation: 0, zIndex: 2 },
+    { id: "backUpArm", spriteName: "experimentUpArm.png", parentId: "upTorso", offsetX: -1, offsetY: 3, rotation: 0, zIndex: 2, isAnimated: true },
+    { id: "backDownArm", spriteName: "experimentDownArm.png", parentId: "backUpArm", offsetX: 0, offsetY: 10, rotation: 0, zIndex: 2, isAnimated: true },
+    { id: "handB", spriteName: "experimentHandB.png", parentId: "backDownArm", offsetX: 0, offsetY: 7, rotation: 0, zIndex: 2 },
     
     { id: "downTorso", spriteName: "experimentDownTorso.png", parentId: null, offsetX: 0, offsetY: 0, rotation: 0, zIndex: 3 },
-    { id: "upTorso", spriteName: "experimentUpTorso.png", parentId: "downTorso", offsetX: 0, offsetY: -12, rotation: 0, zIndex: 4, isAnimated: true },
+    { id: "upTorso", spriteName: "experimentUpTorso.png", parentId: "downTorso", offsetX: 0, offsetY: -8, rotation: 0, zIndex: 4, isAnimated: true },
     
     { id: "head", spriteName: "experimentHead.png", parentId: "upTorso", offsetX: 0, offsetY: -10, rotation: 0, zIndex: 5, isAnimated: true },
-    { id: "face", spriteName: "experimentEyeOpen.png", parentId: "head", offsetX: -2, offsetY: 2, rotation: 0, zIndex: 6 },
+    { id: "eye", spriteName: "experimentEyeOpen.png", parentId: "head", offsetX: 0, offsetY: 0, rotation: 0, zIndex: 6 },
     
-    { id: "frontThigh", spriteName: "experimentThigh.png", parentId: "downTorso", offsetX: -5, offsetY: 5, rotation: 0, zIndex: 7, isAnimated: true },
-    { id: "frontCrus", spriteName: "experimentCrus.png", parentId: "frontThigh", offsetX: 0, offsetY: 10, rotation: 0, zIndex: 7, isAnimated: true },
-    { id: "frontFoot", spriteName: "experimentFoot.png", parentId: "frontCrus", offsetX: 0, offsetY: 10, rotation: 0, zIndex: 7 },
+    { id: "frontThigh", spriteName: "experimentThigh.png", parentId: "downTorso", offsetX: -1, offsetY: 7, rotation: 0, zIndex: 7, isAnimated: true },
+    { id: "frontCrus", spriteName: "experimentCrus.png", parentId: "frontThigh", offsetX: 1, offsetY: 7, rotation: 0, zIndex: 6.5, isAnimated: true },
+    { id: "frontFoot", spriteName: "experimentFoot.png", parentId: "frontCrus", offsetX: -1, offsetY: 7, rotation: 0, zIndex: 6 }, // TODO: Fix frontFoot offset later
     
-    { id: "frontUpArm", spriteName: "experimentUpArm.png", parentId: "upTorso", offsetX: -6, offsetY: 0, rotation: 0, zIndex: 8, isAnimated: true },
-    { id: "frontDownArm", spriteName: "experimentDownArm.png", parentId: "frontUpArm", offsetX: 0, offsetY: 12, rotation: 0, zIndex: 8, isAnimated: true },
-    { id: "handF", spriteName: "experimentHandF.png", parentId: "frontDownArm", offsetX: 0, offsetY: 12, rotation: 0, zIndex: 8 },
+    { id: "frontUpArm", spriteName: "experimentUpArm.png", parentId: "upTorso", offsetX: -1, offsetY: 3, rotation: 0, zIndex: 8, isAnimated: true },
+    { id: "frontDownArm", spriteName: "experimentDownArm.png", parentId: "frontUpArm", offsetX: 0, offsetY: 10, rotation: 0, zIndex: 8, isAnimated: true },
+    { id: "handF", spriteName: "experimentHandF.png", parentId: "frontDownArm", offsetX: 0, offsetY: 7, rotation: 0, zIndex: 8 },
 ];
 
 export const poses: Record<string, SkeletonPose> = {
