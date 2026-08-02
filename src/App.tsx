@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
-import { Pencil, Eraser, Pipette, PaintBucket } from 'lucide-react'
+import { Pencil, Eraser, Pipette, PaintBucket, SquareDashed } from 'lucide-react'
 import { SketchPicker } from 'react-color'
 
 const rgbToHex = (r: number, g: number, b: number) => {
@@ -55,7 +55,16 @@ function App() {
     
     const [selectedSprite, setSelectedSprite] = useState<SpriteFile | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper' | 'fill'>('pencil');
+    const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper' | 'fill' | 'select'>('pencil');
+    
+    // Selection state
+    const [selectionBounds, setSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
+    const [selectionStart, setSelectionStart] = useState<{x: number, y: number} | null>(null);
+    const [isDrawingSelection, setIsDrawingSelection] = useState(false);
+    const [isDraggingSelection, setIsDraggingSelection] = useState(false);
+    const [selectionData, setSelectionData] = useState<ImageData | null>(null);
+    const [canvasBackup, setCanvasBackup] = useState<ImageData | null>(null);
+    const [dragOffset, setDragOffset] = useState<{x: number, y: number} | null>(null);
     const [color, setColor] = useState('#ff0000');
     const [zoom, setZoom] = useState(1);
     const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -223,18 +232,122 @@ function App() {
         setSelectedSprite(newSprite);
     };
 
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing || !canvasRef.current) return;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
+    const getCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current!;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
+        return {
+            x: Math.floor((e.clientX - rect.left) * scaleX),
+            y: Math.floor((e.clientY - rect.top) * scaleY)
+        };
+    };
 
-        const x = Math.floor((e.clientX - rect.left) * scaleX);
-        const y = Math.floor((e.clientY - rect.top) * scaleY);
+    const commitSelection = () => {
+        if (selectionData && canvasBackup && selectionBounds && canvasRef.current) {
+            setSelectionData(null);
+            setCanvasBackup(null);
+            saveCanvasToMemory();
+        }
+    };
+
+    useEffect(() => {
+        if (tool !== 'select') {
+            commitSelection();
+            setSelectionBounds(null);
+        }
+    }, [tool]);
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!canvasRef.current) return;
+        const { x, y } = getCoords(e);
+
+        if (tool === 'fill') {
+            floodFill(e);
+            saveCanvasToMemory();
+        } else if (tool === 'select') {
+            if (selectionBounds && 
+                x >= selectionBounds.x && x < selectionBounds.x + selectionBounds.w &&
+                y >= selectionBounds.y && y < selectionBounds.y + selectionBounds.h) {
+                
+                const ctx = canvasRef.current.getContext('2d')!;
+                if (!selectionData) {
+                    const data = ctx.getImageData(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                    setSelectionData(data);
+                    ctx.clearRect(selectionBounds.x, selectionBounds.y, selectionBounds.w, selectionBounds.h);
+                    setCanvasBackup(ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
+                }
+                setIsDraggingSelection(true);
+                setDragOffset({ x: x - selectionBounds.x, y: y - selectionBounds.y });
+            } else {
+                commitSelection();
+                setSelectionStart({ x, y });
+                setSelectionBounds(null);
+                setSelectionData(null);
+                setIsDrawingSelection(true);
+            }
+        } else {
+            commitSelection();
+            setSelectionBounds(null);
+            setIsDrawing(true);
+            draw(e, x, y);
+        }
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!canvasRef.current) return;
+        const { x, y } = getCoords(e);
+
+        if (tool === 'select') {
+            if (isDrawingSelection && selectionStart) {
+                const minX = Math.min(x, selectionStart.x);
+                const minY = Math.min(y, selectionStart.y);
+                const w = Math.abs(x - selectionStart.x) + 1;
+                const h = Math.abs(y - selectionStart.y) + 1;
+                setSelectionBounds({ x: minX, y: minY, w, h });
+            } else if (isDraggingSelection && selectionBounds && dragOffset && canvasBackup && selectionData) {
+                const newX = x - dragOffset.x;
+                const newY = y - dragOffset.y;
+                
+                const ctx = canvasRef.current.getContext('2d')!;
+                ctx.putImageData(canvasBackup, 0, 0);
+                
+                const offscreen = document.createElement('canvas');
+                offscreen.width = selectionBounds.w;
+                offscreen.height = selectionBounds.h;
+                offscreen.getContext('2d')!.putImageData(selectionData, 0, 0);
+                ctx.drawImage(offscreen, newX, newY);
+                
+                setSelectionBounds({ ...selectionBounds, x: newX, y: newY });
+            }
+        } else if (isDrawing) {
+            draw(e, x, y);
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (isDrawingSelection) {
+            setIsDrawingSelection(false);
+            if (selectionBounds && (selectionBounds.w === 0 || selectionBounds.h === 0)) {
+                setSelectionBounds(null);
+            }
+        } else if (isDraggingSelection) {
+            setIsDraggingSelection(false);
+            if (canvasRef.current) {
+                setCanvasBackup(canvasRef.current.getContext('2d')!.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height));
+            }
+            saveCanvasToMemory();
+        } else if (isDrawing) {
+            setIsDrawing(false);
+            saveCanvasToMemory();
+        }
+    };
+
+    const draw = (e: React.MouseEvent<HTMLCanvasElement>, x: number, y: number) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
         if (tool === 'eraser') {
             ctx.clearRect(x, y, 1, 1);
@@ -598,23 +711,29 @@ function App() {
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
                             <canvas
                                 ref={canvasRef}
                                 className="pixel-canvas"
-                                style={{ width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}
-                                onMouseDown={(e) => { 
-                                    if (tool === 'fill') {
-                                        floodFill(e);
-                                        saveCanvasToMemory(); // Auto save for fill tool
-                                    } else {
-                                        setIsDrawing(true); 
-                                        draw(e); 
-                                    }
-                                }}
-                                onMouseMove={draw}
-                                onMouseUp={() => { setIsDrawing(false); saveCanvasToMemory(); }}
-                                onMouseLeave={() => { setIsDrawing(false); saveCanvasToMemory(); }}
+                                style={{ width: '100%', height: '100%' }}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUp}
+                                onMouseLeave={handleMouseUp}
                             />
+                            {tool === 'select' && selectionBounds && (
+                                <div style={{
+                                    position: 'absolute',
+                                    left: selectionBounds.x * zoom,
+                                    top: selectionBounds.y * zoom,
+                                    width: selectionBounds.w * zoom,
+                                    height: selectionBounds.h * zoom,
+                                    border: '1px dashed #fff',
+                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                    pointerEvents: 'none'
+                                }} />
+                            )}
+                        </div>
                         </div>
                     )}
                 </main>
@@ -677,7 +796,7 @@ function App() {
                             <button 
                                 onClick={() => setTool('eyedropper')}
                                 style={{ 
-                                    flex: '1 1 40%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    flex: '1 1 30%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
                                     padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
                                     backgroundColor: tool === 'eyedropper' ? '#2196F3' : '#333',
                                     color: tool === 'eyedropper' ? '#fff' : '#aaa',
@@ -687,6 +806,20 @@ function App() {
                             >
                                 <Pipette size={24} />
                                 <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Pick</span>
+                            </button>
+                            <button 
+                                onClick={() => setTool('select')}
+                                style={{ 
+                                    flex: '1 1 30%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+                                    padding: '10px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+                                    backgroundColor: tool === 'select' ? '#9C27B0' : '#333',
+                                    color: tool === 'select' ? '#fff' : '#aaa',
+                                    boxShadow: tool === 'select' ? '0 0 10px rgba(156, 39, 176, 0.5)' : 'none',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <SquareDashed size={24} />
+                                <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Select</span>
                             </button>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
