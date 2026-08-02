@@ -8,6 +8,7 @@ interface LeftPanelProps {
     selectedSprite: SpriteFile | null;
     modifiedBlobs: Record<string, Blob>;
     handleSpriteSelect: (file: SpriteFile) => void;
+    onStartResize: () => void;
 }
 
 export function LeftPanel({
@@ -16,10 +17,16 @@ export function LeftPanel({
     isLocalLoaded,
     selectedSprite,
     modifiedBlobs,
-    handleSpriteSelect
+    handleSpriteSelect,
+    onStartResize
 }: LeftPanelProps) {
     return (
-        <aside className="left-panel" style={{ width: leftPanelWidth, flexShrink: 0 }}>
+        <aside className="left-panel" style={{ width: leftPanelWidth, flexShrink: 0, position: 'relative' }}>
+            <div 
+                className="resizer" 
+                onMouseDown={(e) => { e.preventDefault(); onStartResize(); }}
+                style={{ position: 'absolute', right: 0, top: 0, bottom: 0 }}
+            />
             <h3>Sprites</h3>
             <div className="sprite-list-container">
                 {files.length === 0 ? (

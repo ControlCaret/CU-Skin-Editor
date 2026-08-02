@@ -11,6 +11,7 @@ interface RightPanelProps {
     recentColors: { r: number, g: number, b: number, a: number }[];
     extractedColors: { r: number, g: number, b: number, a: number }[];
     rgbaToHex: (c: { r: number, g: number, b: number, a: number }) => string;
+    onStartResize: () => void;
 }
 
 export function RightPanel({
@@ -23,10 +24,16 @@ export function RightPanel({
     setColor,
     recentColors,
     extractedColors,
-    rgbaToHex
+    rgbaToHex,
+    onStartResize
 }: RightPanelProps) {
     return (
-        <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0 }}>
+        <aside className="right-panel" style={{ width: rightPanelWidth, flexShrink: 0, position: 'relative' }}>
+            <div 
+                className="resizer" 
+                onMouseDown={(e) => { e.preventDefault(); onStartResize(); }}
+                style={{ position: 'absolute', left: 0, top: 0, bottom: 0 }}
+            />
             <h3>Tools</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
                 

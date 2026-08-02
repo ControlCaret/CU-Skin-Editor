@@ -1038,15 +1038,10 @@ function App() {
                     selectedSprite={selectedSprite}
                     modifiedBlobs={modifiedBlobs}
                     handleSpriteSelect={handleSpriteSelect}
-                />
-
-                <div 
-                    className="resizer" 
-                    onMouseDown={(e) => { 
-                        e.preventDefault(); 
+                    onStartResize={() => {
                         resizingPanel.current = 'left'; 
                         document.body.style.cursor = 'col-resize'; 
-                    }} 
+                    }}
                 />
 
                 <CanvasEditor
@@ -1066,15 +1061,6 @@ function App() {
                     selectionBounds={selectionBounds}
                 />
 
-                <div 
-                    className="resizer" 
-                    onMouseDown={(e) => { 
-                        e.preventDefault(); 
-                        resizingPanel.current = 'right'; 
-                        document.body.style.cursor = 'col-resize'; 
-                    }} 
-                />
-
                 <RightPanel
                     rightPanelWidth={rightPanelWidth}
                     tool={tool}
@@ -1086,6 +1072,10 @@ function App() {
                     recentColors={recentColors}
                     extractedColors={extractedColors}
                     rgbaToHex={rgbaToHex}
+                    onStartResize={() => {
+                        resizingPanel.current = 'right'; 
+                        document.body.style.cursor = 'col-resize'; 
+                    }}
                 />
             </div>
         </div>
