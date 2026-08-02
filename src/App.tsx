@@ -911,6 +911,16 @@ function App() {
         undo, redo
     };
 
+    const handleAutoZoom = () => {
+        if (containerRef.current && canvasSize.w > 0) {
+            const pad = 180;
+            const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / canvasSize.w);
+            const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / canvasSize.h);
+            const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
+            setZoom(Math.min(100, fitZoom));
+        }
+    };
+
     return (
         <div className="app-container">
             <header className="top-bar">
@@ -1035,8 +1045,21 @@ function App() {
                         <div style={{ color: '#555' }}>Select a sprite to edit</div>
                     ) : (
                         <>
-                            <div style={{ position: 'absolute', top: '15px', left: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: '#ddd', pointerEvents: 'none', zIndex: 10 }}>
+                            <div style={{ position: 'absolute', bottom: '15px', left: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: '#ddd', pointerEvents: 'none', zIndex: 10 }}>
                                 {canvasSize.w} &times; {canvasSize.h} px
+                            </div>
+                            <div style={{ position: 'absolute', bottom: '15px', right: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', color: '#ddd', zIndex: 10, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button onClick={handleAutoZoom} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid #555', color: '#fff', cursor: 'pointer', padding: '2px 6px', fontSize: '11px', borderRadius: '4px', marginRight: '4px' }}>Auto</button>
+                                <button onClick={() => setZoom(z => Math.max(1, z - 1))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '14px', fontWeight: 'bold' }}>-</button>
+                                <input 
+                                    type="range" 
+                                    min="1" max="100" 
+                                    value={zoom} 
+                                    onChange={e => setZoom(Number(e.target.value))} 
+                                    style={{ width: '120px', margin: '0', cursor: 'pointer' }}
+                                />
+                                <span style={{ width: '3ch', textAlign: 'center' }}>{zoom}x</span>
+                                <button onClick={() => setZoom(z => Math.min(100, z + 1))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: '0 4px', fontSize: '14px', fontWeight: 'bold' }}>+</button>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                                 <div className="checkerboard" style={{ position: 'relative', width: `${canvasSize.w * zoom}px`, height: `${canvasSize.h * zoom}px` }}>
@@ -1175,17 +1198,6 @@ function App() {
                                 onChange={(c) => setColor(c.hex)}
                                 disableAlpha={true}
                             />
-                        </div>
-                        <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '10px' }}>
-                            <label style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                Zoom: {zoom}x
-                                <input 
-                                    type="range" 
-                                    min="1" max="100" 
-                                    value={zoom} 
-                                    onChange={e => setZoom(Number(e.target.value))} 
-                                />
-                            </label>
                         </div>
                     </div>
                 </aside>
