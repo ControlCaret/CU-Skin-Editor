@@ -223,12 +223,19 @@ export function SkinPreviewCanvas({
                 const parentPose = computeBone(bone.joint.connectedBody);
                 const parentBone = sortedBones.find(b => b.id === bone.joint!.connectedBody);
 
+                if (activeAnim === 'idle' && (boneId === 'frontUpArm' || boneId === 'backUpArm')) {
+                    hasAnimRot = false;
+                    rotZ = bone.baseRotation; 
+                }
+
                 if (!hasAnimRot && parentBone && parentPose &&
-                    (boneId === 'eyes' || boneId === 'nosebleed' || boneId === 'noseblood' || boneId === 'tail')) {
+                    (boneId === 'eyes' || boneId === 'nosebleed' || boneId === 'noseblood' || boneId === 'tail' || boneId === 'frontDownArm' || boneId === 'backDownArm')) {
                     rotZ = bone.baseRotation + (parentPose.rotZ - parentBone.baseRotation);
                     if (boneId === 'tail') {
                         if (activeAnim === 'walk') rotZ += Math.sin(t * Math.PI * 4) * 2;
                         else if (activeAnim === 'idle') rotZ += Math.sin(t * Math.PI * 2) * 1;
+                    } else if (boneId === 'frontDownArm' || boneId === 'backDownArm') {
+                        if (activeAnim === 'walk') rotZ += 90;
                     }
                 }
 
