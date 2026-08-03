@@ -227,8 +227,8 @@ export function SkinPreviewCanvas({
                     (boneId === 'eyes' || boneId === 'nosebleed' || boneId === 'noseblood' || boneId === 'tail')) {
                     rotZ = bone.baseRotation + (parentPose.rotZ - parentBone.baseRotation);
                     if (boneId === 'tail') {
-                        if (activeAnim === 'walk') rotZ += Math.sin(t * Math.PI * 4) * 12;
-                        else if (activeAnim === 'idle') rotZ += Math.sin(t * Math.PI * 2) * 2;
+                        if (activeAnim === 'walk') rotZ += Math.sin(t * Math.PI * 4) * 2;
+                        else if (activeAnim === 'idle') rotZ += Math.sin(t * Math.PI * 2) * 1;
                     }
                 }
 

@@ -163,7 +163,7 @@ function App() {
             img.src = selectedSprite.path;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSprite]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
+    }, [selectedSprite, activeTab]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
