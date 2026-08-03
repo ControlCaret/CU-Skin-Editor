@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { SpriteFile } from '../types';
+import { SkinPreviewCanvas } from './SkinPreviewCanvas';
 
 interface CanvasEditorProps {
     containerRef: React.RefObject<HTMLElement>;
@@ -16,6 +17,8 @@ interface CanvasEditorProps {
     showPixelGrid: boolean;
     tool: 'pencil' | 'eraser' | 'eyedropper' | 'fill' | 'select';
     selectionBounds: { x: number; y: number; w: number; h: number } | null;
+    modifiedBlobs: Record<string, Blob>;
+    files: SpriteFile[];
 }
 
 export function CanvasEditor({
@@ -32,8 +35,33 @@ export function CanvasEditor({
     showGuide,
     showPixelGrid,
     tool,
-    selectionBounds
+    selectionBounds,
+    modifiedBlobs,
+    files,
 }: CanvasEditorProps) {
+    const [previewSize, setPreviewSize] = useState(180);
+    const dragStartRef = useRef<{ x: number; y: number; size: number } | null>(null);
+
+    const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        dragStartRef.current = { x: e.clientX, y: e.clientY, size: previewSize };
+        const onMouseMove = (mv: MouseEvent) => {
+            if (!dragStartRef.current) return;
+            // Dragging left or up makes it bigger (right-anchored widget)
+            const dx = dragStartRef.current.x - mv.clientX;
+            const dy = mv.clientY - dragStartRef.current.y;
+            const delta = Math.max(dx, dy);
+            const newSize = Math.min(400, Math.max(100, dragStartRef.current.size + delta));
+            setPreviewSize(newSize);
+        };
+        const onMouseUp = () => {
+            dragStartRef.current = null;
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }, [previewSize]);
     return (
         <main className="center-canvas" ref={containerRef}>
             {!selectedSprite ? (
@@ -96,6 +124,50 @@ export function CanvasEditor({
                                     }} 
                                 />
                             )}
+                        </div>
+                    </div>
+
+                    {/* Mini skin preview overlay – top-right corner, resizable square */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        zIndex: 20,
+                        width: previewSize,
+                        height: previewSize,
+                        userSelect: 'none',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: 6,
+                        overflow: 'hidden',
+                    }}>
+                        <SkinPreviewCanvas
+                            modifiedBlobs={modifiedBlobs}
+                            files={files}
+                            activeAnim="walk"
+                            width={previewSize}
+                            height={previewSize}
+                            style={{ display: 'block', width: '100%', height: '100%' }}
+                        />
+                        {/* Resize handle – bottom-left corner */}
+                        <div
+                            onMouseDown={handleResizeMouseDown}
+                            style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                width: 14,
+                                height: 14,
+                                cursor: 'nwse-resize',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                opacity: 0.5,
+                            }}
+                        >
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <line x1="0" y1="10" x2="10" y2="0" stroke="white" strokeWidth="1.5"/>
+                                <line x1="4" y1="10" x2="10" y2="4" stroke="white" strokeWidth="1.5"/>
+                            </svg>
                         </div>
                     </div>
                 </>

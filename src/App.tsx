@@ -36,7 +36,7 @@ function App() {
     // Undo/Redo history
     const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
 
-    const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('preview');
+    const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
     // Ref to hold latest state for global event listeners
     const stateRef = useRef<any>({});
@@ -1071,6 +1071,8 @@ function App() {
                             showPixelGrid={showPixelGrid}
                             tool={tool}
                             selectionBounds={selectionBounds}
+                            modifiedBlobs={modifiedBlobs}
+                            files={files}
                         />
                     ) : (
                         <SkinPreviewTab 
