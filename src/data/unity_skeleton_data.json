@@ -448,7 +448,7 @@
       }
     },
     "spriteRenderer": {
-      "orderInLayer": -100
+      "orderInLayer": 100
     },
     "rigidbody2D": {
       "mass": 1,
