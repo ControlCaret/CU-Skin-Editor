@@ -131,6 +131,18 @@ h3 {
     font-size: 12px;
     overflow-y: auto;
 }
+.sprite-category {
+    margin-bottom: 12px;
+}
+.category-header {
+    margin: 0 0 6px 0;
+    padding-bottom: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #888;
+    border-bottom: 1px solid #333;
+    letter-spacing: 0.5px;
+}
 .sprite-list {
     list-style-type: none;
     padding: 0;

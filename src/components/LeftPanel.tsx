@@ -32,31 +32,43 @@ export function LeftPanel({
                 {files.length === 0 ? (
                     <span>No sprites loaded.</span>
                 ) : (
-                    <ul className="sprite-list">
-                        {files.map((f, i) => {
-                            const isMissing = isLocalLoaded && !f.handle;
-                            const isActive = selectedSprite?.name === f.name;
-                            let itemClass = "sprite-list-item";
-                            if (isActive) itemClass += " active";
-                            if (isMissing) itemClass += " missing";
-                            else if (f.handle) itemClass += " local";
-                            if (f.unused) itemClass += " unused";
+                    <>
+                        {['Head', 'Body', 'Uncategorized'].map(category => {
+                            const categoryFiles = files.filter(f => (f.category || 'Uncategorized') === category);
+                            if (categoryFiles.length === 0) return null;
                             
                             return (
-                                <li key={i} 
-                                    onClick={() => handleSpriteSelect(f)}
-                                    className={itemClass}
-                                >
-                                    <Thumbnail file={f} modifiedBlob={modifiedBlobs[f.name]} />
-                                    <span className="sprite-text">
-                                        <span className="sprite-name">{f.name}</span>
-                                        {modifiedBlobs[f.name] ? ' *' : ''} 
-                                        {isMissing ? ' (Missing)' : (f.handle ? ' (Local)' : '')}
-                                    </span>
-                                </li>
+                                <div key={category} className="sprite-category">
+                                    <h4 className="category-header">{category}</h4>
+                                    <ul className="sprite-list">
+                                        {categoryFiles.map((f, i) => {
+                                            const isMissing = isLocalLoaded && !f.handle;
+                                            const isActive = selectedSprite?.name === f.name;
+                                            let itemClass = "sprite-list-item";
+                                            if (isActive) itemClass += " active";
+                                            if (isMissing) itemClass += " missing";
+                                            else if (f.handle) itemClass += " local";
+                                            if (f.unused) itemClass += " unused";
+                                            
+                                            return (
+                                                <li key={`${category}-${i}`} 
+                                                    onClick={() => handleSpriteSelect(f)}
+                                                    className={itemClass}
+                                                >
+                                                    <Thumbnail file={f} modifiedBlob={modifiedBlobs[f.name]} />
+                                                    <span className="sprite-text">
+                                                        <span className="sprite-name">{f.name}</span>
+                                                        {modifiedBlobs[f.name] ? ' *' : ''} 
+                                                        {isMissing ? ' (Missing)' : (f.handle ? ' (Local)' : '')}
+                                                    </span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
                             );
                         })}
-                    </ul>
+                    </>
                 )}
             </div>
         </aside>
