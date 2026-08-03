@@ -20,6 +20,8 @@ interface CanvasEditorProps {
     modifiedBlobs: Record<string, Blob>;
     files: SpriteFile[];
     activeAnim: string;
+    selectedEye: string;
+    showNosebleed: boolean;
 }
 
 export function CanvasEditor({
@@ -40,6 +42,8 @@ export function CanvasEditor({
     modifiedBlobs,
     files,
     activeAnim,
+    selectedEye,
+    showNosebleed,
 }: CanvasEditorProps) {
     const [previewSize, setPreviewSize] = useState(180);
     const dragStartRef = useRef<{ x: number; y: number; size: number } | null>(null);
@@ -143,6 +147,8 @@ export function CanvasEditor({
                             width={previewSize}
                             height={previewSize}
                             style={{ display: 'block', width: '100%', height: '100%' }}
+                            spriteOverrides={{ head: 'experimentHeadBack.png', eyes: selectedEye }}
+                            showNosebleed={showNosebleed}
                         />
                         <div
                             onMouseDown={handleResizeMouseDown}

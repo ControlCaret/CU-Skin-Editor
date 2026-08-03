@@ -25,12 +25,23 @@ interface SkinPreviewTabProps {
     files: SpriteFile[];
     activeAnim: string;
     setActiveAnim: (anim: string) => void;
+    selectedEye: string;
+    setSelectedEye: (eye: string) => void;
+    showNosebleed: boolean;
+    setShowNosebleed: (show: boolean) => void;
 }
 
-export function SkinPreviewTab({ modifiedBlobs, files, activeAnim, setActiveAnim }: SkinPreviewTabProps) {
+export function SkinPreviewTab({ 
+    modifiedBlobs, 
+    files, 
+    activeAnim, 
+    setActiveAnim,
+    selectedEye,
+    setSelectedEye,
+    showNosebleed,
+    setShowNosebleed
+}: SkinPreviewTabProps) {
     const [zoom, setZoom] = useState(3);
-    const [selectedEye, setSelectedEye] = useState('experimentEyeOpen.png');
-    const [showNosebleed, setShowNosebleed] = useState(false);
     const [autoZoomTrigger, setAutoZoomTrigger] = useState(0);
 
     const spriteOverrides = {

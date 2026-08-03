@@ -36,6 +36,8 @@ function App() {
 
     const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
     const [activeAnim, setActiveAnim] = useState<string>('walk');
+    const [selectedEye, setSelectedEye] = useState<string>('experimentEyeOpen.png');
+    const [showNosebleed, setShowNosebleed] = useState<boolean>(false);
 
     const stateRef = useRef<any>({});
     
@@ -1071,6 +1073,8 @@ function App() {
                             modifiedBlobs={modifiedBlobs}
                             files={files}
                             activeAnim={activeAnim}
+                            selectedEye={selectedEye}
+                            showNosebleed={showNosebleed}
                         />
                     ) : (
                         <SkinPreviewTab 
@@ -1078,6 +1082,10 @@ function App() {
                             files={files}
                             activeAnim={activeAnim}
                             setActiveAnim={setActiveAnim}
+                            selectedEye={selectedEye}
+                            setSelectedEye={setSelectedEye}
+                            showNosebleed={showNosebleed}
+                            setShowNosebleed={setShowNosebleed}
                         />
                     )}
                 </div>
