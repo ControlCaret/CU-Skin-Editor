@@ -70,7 +70,7 @@ function App() {
             return {
                 ...sprite,
                 name,
-                path: `/Original/Body/${name}`,
+                path: `${import.meta.env.BASE_URL}Original/Body/${name}`,
                 handle: undefined
             };
         });
@@ -797,7 +797,7 @@ function App() {
                 return {
                     ...sprite,
                     name,
-                    path: `/Original/Body/${name}`, // Fallback URL for missing local files
+                    path: `${import.meta.env.BASE_URL}Original/Body/${name}`, // Fallback URL for missing local files
                     handle: localMatch ? localMatch.handle : undefined
                 };
             });
