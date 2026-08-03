@@ -103,12 +103,31 @@ export function TopBar({
                     )}
                 </div>
                 
-                <button 
-                    className="view-toggle-btn"
-                    onClick={() => setActiveTab(activeTab === 'editor' ? 'preview' : 'editor')}
-                >
-                    {activeTab === 'editor' ? 'Skin Preview' : 'Sprite Editor'}
-                </button>
+                <div style={{ display: 'flex', gap: 0 }}>
+                    <button
+                        className="view-toggle-btn"
+                        onClick={() => setActiveTab('editor')}
+                        style={{
+                            borderRadius: '4px 0 0 4px',
+                            borderRight: 'none',
+                            opacity: activeTab === 'editor' ? 1 : 0.55,
+                            fontWeight: activeTab === 'editor' ? 'bold' : 'normal',
+                        }}
+                    >
+                        Sprite Editor
+                    </button>
+                    <button
+                        className="view-toggle-btn"
+                        onClick={() => setActiveTab('preview')}
+                        style={{
+                            borderRadius: '0 4px 4px 0',
+                            opacity: activeTab === 'preview' ? 1 : 0.55,
+                            fontWeight: activeTab === 'preview' ? 'bold' : 'normal',
+                        }}
+                    >
+                        Skin Preview
+                    </button>
+                </div>
             </div>
         </header>
     );

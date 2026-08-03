@@ -19,6 +19,7 @@ interface CanvasEditorProps {
     selectionBounds: { x: number; y: number; w: number; h: number } | null;
     modifiedBlobs: Record<string, Blob>;
     files: SpriteFile[];
+    activeAnim: string;
 }
 
 export function CanvasEditor({
@@ -38,6 +39,7 @@ export function CanvasEditor({
     selectionBounds,
     modifiedBlobs,
     files,
+    activeAnim,
 }: CanvasEditorProps) {
     const [previewSize, setPreviewSize] = useState(180);
     const dragStartRef = useRef<{ x: number; y: number; size: number } | null>(null);
@@ -47,12 +49,8 @@ export function CanvasEditor({
         dragStartRef.current = { x: e.clientX, y: e.clientY, size: previewSize };
         const onMouseMove = (mv: MouseEvent) => {
             if (!dragStartRef.current) return;
-            // Dragging left or up makes it bigger (right-anchored widget)
-            const dx = dragStartRef.current.x - mv.clientX;
-            const dy = mv.clientY - dragStartRef.current.y;
-            const delta = Math.max(dx, dy);
-            const newSize = Math.min(400, Math.max(100, dragStartRef.current.size + delta));
-            setPreviewSize(newSize);
+            const delta = Math.max(dragStartRef.current.x - mv.clientX, mv.clientY - dragStartRef.current.y);
+            setPreviewSize(Math.min(400, Math.max(100, dragStartRef.current.size + delta)));
         };
         const onMouseUp = () => {
             dragStartRef.current = null;
@@ -62,6 +60,7 @@ export function CanvasEditor({
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
     }, [previewSize]);
+
     return (
         <main className="center-canvas" ref={containerRef}>
             {!selectedSprite ? (
@@ -74,11 +73,11 @@ export function CanvasEditor({
                     <div className="zoom-controls">
                         <button onClick={handleAutoZoom} className="zoom-btn-auto">Auto</button>
                         <button onClick={() => setZoom(z => Math.max(1, z - 1))} className="zoom-btn">-</button>
-                        <input 
-                            type="range" 
-                            min="1" max="100" 
-                            value={zoom} 
-                            onChange={e => setZoom(Number(e.target.value))} 
+                        <input
+                            type="range"
+                            min="1" max="100"
+                            value={zoom}
+                            onChange={e => setZoom(Number(e.target.value))}
                             className="zoom-slider"
                         />
                         <span className="zoom-text">{zoom}x</span>
@@ -114,27 +113,24 @@ export function CanvasEditor({
                                 }} />
                             )}
                             {tool === 'select' && selectionBounds && (
-                                <div 
+                                <div
                                     className="selection-box"
                                     style={{
                                         left: selectionBounds.x * zoom,
                                         top: selectionBounds.y * zoom,
                                         width: selectionBounds.w * zoom,
                                         height: selectionBounds.h * zoom
-                                    }} 
+                                    }}
                                 />
                             )}
                         </div>
                     </div>
 
-                    {/* Mini skin preview overlay – top-right corner, resizable square */}
                     <div style={{
                         position: 'absolute',
-                        top: 12,
-                        right: 12,
+                        top: 12, right: 12,
                         zIndex: 20,
-                        width: previewSize,
-                        height: previewSize,
+                        width: previewSize, height: previewSize,
                         userSelect: 'none',
                         border: '1px solid rgba(255,255,255,0.2)',
                         borderRadius: 6,
@@ -143,20 +139,17 @@ export function CanvasEditor({
                         <SkinPreviewCanvas
                             modifiedBlobs={modifiedBlobs}
                             files={files}
-                            activeAnim="walk"
+                            activeAnim={activeAnim}
                             width={previewSize}
                             height={previewSize}
                             style={{ display: 'block', width: '100%', height: '100%' }}
                         />
-                        {/* Resize handle – bottom-left corner */}
                         <div
                             onMouseDown={handleResizeMouseDown}
                             style={{
                                 position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                width: 14,
-                                height: 14,
+                                bottom: 0, left: 0,
+                                width: 14, height: 14,
                                 cursor: 'nwse-resize',
                                 display: 'flex',
                                 alignItems: 'center',

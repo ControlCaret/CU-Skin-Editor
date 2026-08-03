@@ -7,15 +7,16 @@ import type { FloatKeyframe, VectorKeyframe, AnimationData } from '../utils/anim
 export interface SkinPreviewCanvasProps {
     modifiedBlobs: Record<string, Blob>;
     files: SpriteFile[];
-    /** Active animation name. Defaults to 'idle' if not provided. */
     activeAnim?: string;
-    /** Zoom level. If undefined, auto-zoom is applied on first render. */
     zoom?: number;
     onZoomChange?: (zoom: number) => void;
     width?: number;
     height?: number;
     style?: React.CSSProperties;
     className?: string;
+    spriteOverrides?: Record<string, string>;
+    showNosebleed?: boolean;
+    autoZoomTrigger?: number;
 }
 
 function interpolateFloat(keyframes: FloatKeyframe[], time: number): number | null {
@@ -70,20 +71,19 @@ function getAnimDuration(animData: AnimationData) {
     return maxTime === 0 ? 1 : maxTime;
 }
 
-/**
- * Pure canvas renderer for the skin preview animation.
- * Can be embedded anywhere – tab view, mini overlay, etc.
- */
 export function SkinPreviewCanvas({
     modifiedBlobs,
     files,
-    activeAnim = 'idle',
+    activeAnim = 'walk',
     zoom: zoomProp,
     onZoomChange,
     width = 800,
     height = 800,
     style,
     className,
+    spriteOverrides = {},
+    showNosebleed = true,
+    autoZoomTrigger = 0,
 }: SkinPreviewCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
@@ -92,19 +92,22 @@ export function SkinPreviewCanvas({
     const reqRef = useRef<number>(0);
     const autoZoomDoneRef = useRef<boolean>(false);
 
-    // Use controlled zoom if provided, otherwise use internal state
     const zoom = zoomProp !== undefined ? zoomProp : internalZoom;
     const setZoom = (z: number) => {
         setInternalZoom(z);
         onZoomChange?.(z);
     };
 
-    // Load images whenever blobs or files change
+    const effectiveSpriteMap = { ...boneToSpriteMap, ...spriteOverrides };
+
+    useEffect(() => { autoZoomDoneRef.current = false; }, [width, height]);
+    useEffect(() => { autoZoomDoneRef.current = false; }, [autoZoomTrigger]);
+
     useEffect(() => {
         let active = true;
         const loadedImages: Record<string, HTMLImageElement> = {};
         let loadedCount = 0;
-        const neededSpriteNames = Array.from(new Set(Object.values(boneToSpriteMap)));
+        const neededSpriteNames = Array.from(new Set(Object.values(effectiveSpriteMap)));
 
         neededSpriteNames.forEach(spriteName => {
             const blob = modifiedBlobs[spriteName];
@@ -117,41 +120,24 @@ export function SkinPreviewCanvas({
             }
 
             const checkDone = () => {
-                if (loadedCount === neededSpriteNames.length) {
-                    if (active) {
-                        setImages({ ...loadedImages });
-                        autoZoomDoneRef.current = false;
-                    }
+                if (loadedCount === neededSpriteNames.length && active) {
+                    setImages({ ...loadedImages });
+                    autoZoomDoneRef.current = false;
                 }
             };
 
-            if (!url) {
-                loadedCount++;
-                checkDone();
-                return;
-            }
+            if (!url) { loadedCount++; checkDone(); return; }
 
             const img = new Image();
-            img.onload = () => {
-                if (!active) return;
-                loadedImages[spriteName] = img;
-                loadedCount++;
-                checkDone();
-            };
-            img.onerror = () => {
-                if (!active) return;
-                loadedCount++;
-                checkDone();
-            };
+            img.onload = () => { if (!active) return; loadedImages[spriteName] = img; loadedCount++; checkDone(); };
+            img.onerror = () => { if (!active) return; loadedCount++; checkDone(); };
             img.src = url;
         });
 
-        return () => {
-            active = false;
-        };
-    }, [modifiedBlobs, files]);
+        return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [modifiedBlobs, files, JSON.stringify(spriteOverrides)]);
 
-    // Animation render loop
     useEffect(() => {
         let lastTime = performance.now();
 
@@ -181,9 +167,7 @@ export function SkinPreviewCanvas({
                 return;
             }
 
-            if (!images[boneToSpriteMap[sortedBones[0]?.id]] || !images[boneToSpriteMap['downTorso']]) {
-                return;
-            }
+            if (!images[effectiveSpriteMap[sortedBones[0]?.id]] || !images[effectiveSpriteMap['downTorso']]) return;
 
             const computedPoses: Record<string, { x: number; y: number; rotZ: number }> = {};
 
@@ -203,9 +187,7 @@ export function SkinPreviewCanvas({
 
             const rotateVec = (v: { x: number; y: number }, deg: number) => {
                 const rad = deg * (Math.PI / 180);
-                const cos = Math.cos(rad);
-                const sin = Math.sin(rad);
-                return { x: v.x * cos - v.y * sin, y: v.x * sin + v.y * cos };
+                return { x: v.x * Math.cos(rad) - v.y * Math.sin(rad), y: v.x * Math.sin(rad) + v.y * Math.cos(rad) };
             };
 
             const computeBone = (boneId: string): { x: number; y: number; rotZ: number } => {
@@ -216,23 +198,19 @@ export function SkinPreviewCanvas({
 
                 let rotZ = bone.baseRotation;
                 let hasAnimRot = false;
-                if (animData && animData[boneId]) {
-                    const bAnim = animData[boneId];
-                    const animRot = interpolateFloat(bAnim.rotation, t);
-                    if (animRot !== null) {
-                        rotZ = animRot;
-                        hasAnimRot = true;
-                    }
+                if (animData?.[boneId]) {
+                    const animRot = interpolateFloat(animData[boneId].rotation, t);
+                    if (animRot !== null) { rotZ = animRot; hasAnimRot = true; }
                 }
 
-                if (!bone.joint || !bone.joint.connectedBody) {
+                if (!bone.joint?.connectedBody) {
                     let posX = 0; let posY = 0;
-                    if (animData && animData[boneId]) {
+                    if (animData?.[boneId]) {
                         const animPos = interpolateVector(animData[boneId].position, t);
                         if (animPos) {
                             let implicitPPU = 50;
-                            const rImg = images[boneToSpriteMap[boneId]];
-                            if (rImg && bone.collider && bone.collider.type === 'BoxCollider2D' && bone.collider.size) {
+                            const rImg = images[effectiveSpriteMap[boneId]];
+                            if (rImg && bone.collider?.type === 'BoxCollider2D' && bone.collider.size) {
                                 implicitPPU = rImg.height / bone.collider.size.y;
                             }
                             posX = (animPos.x - bone.basePosition.x) * implicitPPU;
@@ -246,46 +224,35 @@ export function SkinPreviewCanvas({
                 const parentPose = computeBone(bone.joint.connectedBody);
                 const parentBone = sortedBones.find(b => b.id === bone.joint!.connectedBody);
 
-                // Rigidly inherit rotation for visual-only child sprites (eyes, nosebleed, tail)
                 if (!hasAnimRot && parentBone && parentPose &&
                     (boneId === 'eyes' || boneId === 'nosebleed' || boneId === 'noseblood' || boneId === 'tail')) {
                     rotZ = bone.baseRotation + (parentPose.rotZ - parentBone.baseRotation);
-
-                    // Procedural tail wagging
                     if (boneId === 'tail') {
-                        if (activeAnim === 'walk') {
-                            rotZ += Math.sin(t * Math.PI * 4) * 12;
-                        } else if (activeAnim === 'idle') {
-                            rotZ += Math.sin(t * Math.PI * 2) * 2;
-                        }
+                        if (activeAnim === 'walk') rotZ += Math.sin(t * Math.PI * 4) * 12;
+                        else if (activeAnim === 'idle') rotZ += Math.sin(t * Math.PI * 2) * 2;
                     }
                 }
 
-                const img = images[boneToSpriteMap[boneId]];
-                const parentImg = images[boneToSpriteMap[bone.joint.connectedBody]];
-
-                if (!img || !parentImg || !parentBone) {
-                    return { x: parentPose.x, y: parentPose.y, rotZ };
-                }
+                const img = images[effectiveSpriteMap[boneId]];
+                const parentImg = images[effectiveSpriteMap[bone.joint.connectedBody]];
+                if (!img || !parentImg || !parentBone) return { x: parentPose.x, y: parentPose.y, rotZ };
 
                 const pAnchor = getAnchorPixels(parentBone, bone.joint.connectedAnchor.x, bone.joint.connectedAnchor.y, parentImg);
                 const cAnchor = getAnchorPixels(bone, bone.joint.anchor.x, bone.joint.anchor.y, img);
 
                 const pAnchorRot = rotateVec(pAnchor, parentPose.rotZ);
-                const parentAnchorX = parentPose.x + pAnchorRot.x;
-                const parentAnchorY = parentPose.y + pAnchorRot.y;
-
                 const cAnchorRot = rotateVec(cAnchor, rotZ);
-                const childPosX = parentAnchorX - cAnchorRot.x;
-                const childPosY = parentAnchorY - cAnchorRot.y;
 
-                computedPoses[boneId] = { x: childPosX, y: childPosY, rotZ };
+                computedPoses[boneId] = {
+                    x: parentPose.x + pAnchorRot.x - cAnchorRot.x,
+                    y: parentPose.y + pAnchorRot.y - cAnchorRot.y,
+                    rotZ,
+                };
                 return computedPoses[boneId];
             };
 
             sortedBones.forEach(b => computeBone(b.id));
 
-            // Bounding box for centering
             let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
             Object.values(computedPoses).forEach(pose => {
                 if (pose.y < minY) minY = pose.y;
@@ -301,11 +268,11 @@ export function SkinPreviewCanvas({
 
             if (!autoZoomDoneRef.current && charHeight > 0 && charWidth > 0 && charHeight < Infinity) {
                 autoZoomDoneRef.current = true;
-                const zoomY = (canvas.height * 0.75) / charHeight;
-                const zoomX = (canvas.width * 0.75) / charWidth;
-                const targetZoom = Math.min(10, Math.max(0.5, Math.min(zoomX, zoomY)));
-                const roundedZoom = Math.max(0.5, Math.round(targetZoom * 2) / 2);
-                setTimeout(() => setZoom(roundedZoom), 0);
+                const targetZoom = Math.max(0.5, Math.min(
+                    (canvas.width * 0.55) / charWidth,
+                    (canvas.height * 0.55) / charHeight
+                ));
+                setTimeout(() => setZoom(Math.max(0.5, Math.round(targetZoom * 2) / 2)), 0);
             }
 
             ctx.save();
@@ -315,11 +282,10 @@ export function SkinPreviewCanvas({
             ctx.translate(-centerX, centerY);
 
             sortedBones.forEach(bone => {
-                const spriteName = boneToSpriteMap[bone.id];
-                const img = images[spriteName];
-                if (!img) return;
-
+                if (!showNosebleed && (bone.id === 'nosebleed' || bone.id === 'noseblood')) return;
+                const img = images[effectiveSpriteMap[bone.id]];
                 const pose = computedPoses[bone.id];
+                if (!img || !pose) return;
                 ctx.save();
                 ctx.translate(pose.x, -pose.y);
                 ctx.rotate(-pose.rotZ * (Math.PI / 180));
@@ -331,10 +297,9 @@ export function SkinPreviewCanvas({
         };
 
         reqRef.current = requestAnimationFrame(render);
-        return () => {
-            if (reqRef.current) cancelAnimationFrame(reqRef.current);
-        };
-    }, [images, zoom, activeAnim]);
+        return () => { if (reqRef.current) cancelAnimationFrame(reqRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [images, zoom, activeAnim, showNosebleed]);
 
     return (
         <canvas

@@ -22,7 +22,6 @@ function App() {
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper' | 'fill' | 'select'>('pencil');
     
-    // Selection state
     const [selectionBounds, setSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     const [selectionStart, setSelectionStart] = useState<{x: number, y: number} | null>(null);
     const [isDrawingSelection, setIsDrawingSelection] = useState(false);
@@ -33,12 +32,11 @@ function App() {
     const [isPastedSelection, setIsPastedSelection] = useState(false);
     const [originalSelectionBounds, setOriginalSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     
-    // Undo/Redo history
     const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
 
     const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+    const [activeAnim, setActiveAnim] = useState<string>('walk');
 
-    // Ref to hold latest state for global event listeners
     const stateRef = useRef<any>({});
     
     const [color, setColor] = useState({ r: 255, g: 0, b: 0, a: 1 });
@@ -58,7 +56,6 @@ function App() {
     const [showPixelGrid, setShowPixelGrid] = useState(false);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-    // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = () => setActiveMenu(null);
         document.addEventListener('click', handleClickOutside);
@@ -1073,11 +1070,14 @@ function App() {
                             selectionBounds={selectionBounds}
                             modifiedBlobs={modifiedBlobs}
                             files={files}
+                            activeAnim={activeAnim}
                         />
                     ) : (
                         <SkinPreviewTab 
                             modifiedBlobs={modifiedBlobs}
                             files={files}
+                            activeAnim={activeAnim}
+                            setActiveAnim={setActiveAnim}
                         />
                     )}
                 </div>
