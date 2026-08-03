@@ -1,0 +1,797 @@
+{
+  "head": {
+    "transform": {
+      "position": {
+        "x": 0,
+        "y": 2.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 50
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "CircleCollider2D",
+      "offset": {
+        "x": 0,
+        "y": -0.09
+      },
+      "radius": 0.7
+    },
+    "hingeJoint2D": {
+      "connectedBody": "upTorso",
+      "anchor": {
+        "x": -0.03840153,
+        "y": -0.7560358
+      },
+      "connectedAnchor": {
+        "x": -0.03840153,
+        "y": 0.4939642
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -60,
+        "upperAngle": 60
+      }
+    }
+  },
+  "upTorso": {
+    "transform": {
+      "position": {
+        "x": 0,
+        "y": 1.25,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 20
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": -0.06251818,
+        "y": 0
+      },
+      "size": {
+        "x": 0.8749636,
+        "y": 1.25
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "downTorso",
+      "anchor": {
+        "x": -0.05838124,
+        "y": -0.5030366
+      },
+      "connectedAnchor": {
+        "x": -0.05838124,
+        "y": 0.4969634
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -45,
+        "upperAngle": 45
+      }
+    }
+  },
+  "downTorso": {
+    "transform": {
+      "position": {
+        "x": 0,
+        "y": 0.25,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 10
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": -0.05633849,
+        "y": 0
+      },
+      "size": {
+        "x": 0.887323,
+        "y": 1.25
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": null,
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "connectedAnchor": {
+        "x": 0,
+        "y": 0.25
+      },
+      "useLimits": false
+    }
+  },
+  "frontUpArm": {
+    "transform": {
+      "position": {
+        "x": -0.118,
+        "y": 0.876,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 150
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.5,
+        "y": 1.26
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "upTorso",
+      "anchor": {
+        "x": 0,
+        "y": 0.51
+      },
+      "connectedAnchor": {
+        "x": -0.118,
+        "y": 0.1359999
+      },
+      "useLimits": false
+    }
+  },
+  "frontDownArm": {
+    "transform": {
+      "position": {
+        "x": -0.118,
+        "y": -0.373,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 160
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.5,
+        "y": 1.51
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "frontUpArm",
+      "anchor": {
+        "x": 0,
+        "y": 0.75
+      },
+      "connectedAnchor": {
+        "x": 0,
+        "y": -0.499
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -140,
+        "upperAngle": 0
+      }
+    }
+  },
+  "frontHandF": {
+    "transform": {
+      "position": {
+        "x": -0.118,
+        "y": -1.24,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 170
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.51,
+        "y": 0.5
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "frontDownArm",
+      "anchor": {
+        "x": 0,
+        "y": 0.18
+      },
+      "connectedAnchor": {
+        "x": 0,
+        "y": -0.6869999
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -75,
+        "upperAngle": 75
+      }
+    }
+  },
+  "backUpArm": {
+    "transform": {
+      "position": {
+        "x": -0.118,
+        "y": 0.876,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": -50
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.5,
+        "y": 1.26
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "upTorso",
+      "anchor": {
+        "x": 0,
+        "y": 0.51
+      },
+      "connectedAnchor": {
+        "x": -0.118,
+        "y": 0.1359999
+      },
+      "useLimits": false
+    }
+  },
+  "backDownArm": {
+    "transform": {
+      "position": {
+        "x": -0.118,
+        "y": -0.373,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": -60
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.5,
+        "y": 1.51
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "backUpArm",
+      "anchor": {
+        "x": 0,
+        "y": 0.75
+      },
+      "connectedAnchor": {
+        "x": 0,
+        "y": -0.499
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -140,
+        "upperAngle": 0
+      }
+    }
+  },
+  "backHandB": {
+    "transform": {
+      "position": {
+        "x": -0.118,
+        "y": -1.24,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": -40
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.51,
+        "y": 0.5
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "backDownArm",
+      "anchor": {
+        "x": 0,
+        "y": 0.18
+      },
+      "connectedAnchor": {
+        "x": 0,
+        "y": -0.6869999
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -75,
+        "upperAngle": 75
+      }
+    }
+  },
+  "frontThigh": {
+    "transform": {
+      "position": {
+        "x": -0.119,
+        "y": -0.563,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 100
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": -0.06,
+        "y": 0
+      },
+      "size": {
+        "x": 0.87,
+        "y": 1.25
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "downTorso",
+      "anchor": {
+        "x": -0.01,
+        "y": 0.52
+      },
+      "connectedAnchor": {
+        "x": -0.129,
+        "y": -0.293
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -110,
+        "upperAngle": 70
+      }
+    }
+  },
+  "frontCrus": {
+    "transform": {
+      "position": {
+        "x": -0.005000003,
+        "y": -1.501,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 90
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.5,
+        "y": 1
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "frontThigh",
+      "anchor": {
+        "x": 0,
+        "y": 0.49
+      },
+      "connectedAnchor": {
+        "x": 0.114,
+        "y": -0.4479999
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": 0,
+        "upperAngle": 140
+      }
+    }
+  },
+  "frontFoot": {
+    "transform": {
+      "position": {
+        "x": 0.157,
+        "y": -2.415,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 30
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 80
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.51,
+        "y": 1.375
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "frontCrus",
+      "anchor": {
+        "x": 0.21,
+        "y": 0.51
+      },
+      "connectedAnchor": {
+        "x": 0.08886584,
+        "y": -0.3673275
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -110,
+        "upperAngle": 0
+      }
+    }
+  },
+  "backThigh": {
+    "transform": {
+      "position": {
+        "x": -0.119,
+        "y": -0.563,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": -10
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": -0.06,
+        "y": 0
+      },
+      "size": {
+        "x": 0.87,
+        "y": 1.25
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "downTorso",
+      "anchor": {
+        "x": -0.01,
+        "y": 0.52
+      },
+      "connectedAnchor": {
+        "x": -0.129,
+        "y": -0.293
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -110,
+        "upperAngle": 70
+      }
+    }
+  },
+  "backCrus": {
+    "transform": {
+      "position": {
+        "x": -0.005000003,
+        "y": -1.501,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": -20
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.5,
+        "y": 1
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "backThigh",
+      "anchor": {
+        "x": 0,
+        "y": 0.49
+      },
+      "connectedAnchor": {
+        "x": 0.114,
+        "y": -0.4479999
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": 0,
+        "upperAngle": 140
+      }
+    }
+  },
+  "backFoot": {
+    "transform": {
+      "position": {
+        "x": 0.157,
+        "y": -2.415,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 30
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": -30
+    },
+    "rigidbody2D": {
+      "mass": 1,
+      "linearDrag": 0,
+      "angularDrag": 0.05,
+      "gravityScale": 1
+    },
+    "collider2D": {
+      "type": "BoxCollider2D",
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "size": {
+        "x": 0.51,
+        "y": 1.375
+      }
+    },
+    "hingeJoint2D": {
+      "connectedBody": "backCrus",
+      "anchor": {
+        "x": 0.21,
+        "y": 0.51
+      },
+      "connectedAnchor": {
+        "x": 0.08886584,
+        "y": -0.3673275
+      },
+      "useLimits": true,
+      "angleLimits": {
+        "lowerAngle": -110,
+        "upperAngle": 0
+      }
+    }
+  },
+  "tail": {
+    "transform": {
+      "position": {
+        "x": 0,
+        "y": -0.353,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 23.577
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 0
+    },
+    "rigidbody2D": null,
+    "collider2D": null,
+    "hingeJoint2D": null
+  },
+  "eyes": {
+    "transform": {
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 53
+    },
+    "rigidbody2D": null,
+    "collider2D": null,
+    "hingeJoint2D": null
+  },
+  "nosebleed": {
+    "transform": {
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "spriteRenderer": {
+      "orderInLayer": 51
+    },
+    "rigidbody2D": null,
+    "collider2D": null,
+    "hingeJoint2D": null
+  }
+}

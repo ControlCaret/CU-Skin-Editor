@@ -6,6 +6,7 @@ import { extractPalette } from './utils/paletteExtraction'
 
 import type { SpriteFile } from './types'
 import { TopBar } from './components/TopBar'
+import { SkinPreviewTab } from './components/SkinPreviewTab'
 import { LeftPanel } from './components/LeftPanel'
 import { RightPanel } from './components/RightPanel'
 import { CanvasEditor } from './components/CanvasEditor'
@@ -21,7 +22,6 @@ function App() {
     const [isDrawing, setIsDrawing] = useState(false);
     const [tool, setTool] = useState<'pencil' | 'eraser' | 'eyedropper' | 'fill' | 'select'>('pencil');
     
-    // Selection state
     const [selectionBounds, setSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     const [selectionStart, setSelectionStart] = useState<{x: number, y: number} | null>(null);
     const [isDrawingSelection, setIsDrawingSelection] = useState(false);
@@ -32,10 +32,13 @@ function App() {
     const [isPastedSelection, setIsPastedSelection] = useState(false);
     const [originalSelectionBounds, setOriginalSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     
-    // Undo/Redo history
     const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
 
-    // Ref to hold latest state for global event listeners
+    const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+    const [activeAnim, setActiveAnim] = useState<string>('walk');
+    const [selectedEye, setSelectedEye] = useState<string>('experimentEyeOpen.png');
+    const [showNosebleed, setShowNosebleed] = useState<boolean>(false);
+
     const stateRef = useRef<any>({});
     
     const [color, setColor] = useState({ r: 255, g: 0, b: 0, a: 1 });
@@ -55,7 +58,6 @@ function App() {
     const [showPixelGrid, setShowPixelGrid] = useState(false);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-    // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = () => setActiveMenu(null);
         document.addEventListener('click', handleClickOutside);
@@ -161,7 +163,7 @@ function App() {
             img.src = selectedSprite.path;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSprite]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
+    }, [selectedSprite, activeTab]); // intentionally omit modifiedBlobs so it doesn't flicker when drawing
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -1028,6 +1030,8 @@ function App() {
                 setShowGuide={setShowGuide}
                 showPixelGrid={showPixelGrid}
                 setShowPixelGrid={setShowPixelGrid}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
             />
 
             <div className="main-content">
@@ -1044,22 +1048,42 @@ function App() {
                     }}
                 />
 
-                <CanvasEditor
-                    containerRef={containerRef}
-                    selectedSprite={selectedSprite}
-                    canvasSize={canvasSize}
-                    zoom={zoom}
-                    setZoom={setZoom}
-                    handleAutoZoom={handleAutoZoom}
-                    canvasRef={canvasRef}
-                    handleMouseDown={handleMouseDown}
-                    handleMouseMove={handleMouseMove}
-                    handleMouseUp={handleMouseUp}
-                    showGuide={showGuide}
-                    showPixelGrid={showPixelGrid}
-                    tool={tool}
-                    selectionBounds={selectionBounds}
-                />
+                <div className="center-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
+                    {activeTab === 'editor' ? (
+                        <CanvasEditor
+                            containerRef={containerRef}
+                            selectedSprite={selectedSprite}
+                            canvasSize={canvasSize}
+                            zoom={zoom}
+                            setZoom={setZoom}
+                            handleAutoZoom={handleAutoZoom}
+                            canvasRef={canvasRef}
+                            handleMouseDown={handleMouseDown}
+                            handleMouseMove={handleMouseMove}
+                            handleMouseUp={handleMouseUp}
+                            showGuide={showGuide}
+                            showPixelGrid={showPixelGrid}
+                            tool={tool}
+                            selectionBounds={selectionBounds}
+                            modifiedBlobs={modifiedBlobs}
+                            files={files}
+                            activeAnim={activeAnim}
+                            selectedEye={selectedEye}
+                            showNosebleed={showNosebleed}
+                        />
+                    ) : (
+                        <SkinPreviewTab 
+                            modifiedBlobs={modifiedBlobs}
+                            files={files}
+                            activeAnim={activeAnim}
+                            setActiveAnim={setActiveAnim}
+                            selectedEye={selectedEye}
+                            setSelectedEye={setSelectedEye}
+                            showNosebleed={showNosebleed}
+                            setShowNosebleed={setShowNosebleed}
+                        />
+                    )}
+                </div>
 
                 <RightPanel
                     rightPanelWidth={rightPanelWidth}
