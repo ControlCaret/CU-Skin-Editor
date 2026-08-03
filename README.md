@@ -1,75 +1,39 @@
-# React + TypeScript + Vite
+English | [한국어](README-ko.md)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Casualties: Unknown Skin Editor
 
-Currently, two official plugins are available:
+A lightweight web-based skin editor and viewer for **[Casualties: Unknown](https://store.steampowered.com/app/4576490/)**. 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## React Compiler
+## Features
+- **Pixel Editor**: Edit sprites with built-in tools (Pencil, Eraser, Fill, Area Selection).
+- **Skin Preview**: Real-time skin preview with Idle and Walk animations.
+- **Local File Support**: Edit your skin folders directly in the web editor without uploading.
+- **Export**: Export skins as a ZIP file or overwrite local folders.
+- **Smart Palette**: Automatically extract prominent colors from sprites.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
+- **Core**: React 19 + TypeScript + Vite
+- **Graphics**: HTML5 `<canvas>` API
+- **Performance**: Built with minimal external dependencies for fast, lightweight execution.
 
-## Expanding the ESLint configuration
+## Development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Contributions are always welcome!
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/ControlCaret/CU-Skin-Editor.git
+   cd CU-Skin-Editor
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. **Install dependencies & Run:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+   Open `http://localhost:5173` in your browser.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Disclaimer
 
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+This is an unofficial fan project. "Casualties: Unknown", its character sprites, animations, and related assets are the property of **[Orsoniks](https://orsonik.itch.io/)** and/or their publisher **[Oro Interactive](https://www.orointeractive.com/)**. All rights to the original game and its assets belong exclusively to their respective owners.
