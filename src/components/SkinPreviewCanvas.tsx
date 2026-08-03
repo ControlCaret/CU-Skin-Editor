@@ -122,7 +122,6 @@ export function SkinPreviewCanvas({
             const checkDone = () => {
                 if (loadedCount === neededSpriteNames.length && active) {
                     setImages({ ...loadedImages });
-                    autoZoomDoneRef.current = false;
                 }
             };
 
@@ -254,7 +253,10 @@ export function SkinPreviewCanvas({
             sortedBones.forEach(b => computeBone(b.id));
 
             let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
-            Object.values(computedPoses).forEach(pose => {
+            Object.entries(computedPoses).forEach(([boneId, pose]) => {
+                // Ignore small decorative parts for bounding box to prevent zoom jitter
+                if (boneId === 'eyes' || boneId === 'nosebleed' || boneId === 'noseblood') return;
+
                 if (pose.y < minY) minY = pose.y;
                 if (pose.y > maxY) maxY = pose.y;
                 if (pose.x < minX) minX = pose.x;
