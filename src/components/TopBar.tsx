@@ -103,27 +103,16 @@ export function TopBar({
                     )}
                 </div>
                 
-                <div style={{ display: 'flex', gap: 0 }}>
+                <div className="segmented-control">
                     <button
-                        className="view-toggle-btn"
+                        className={`view-toggle-btn ${activeTab === 'editor' ? 'active' : ''}`}
                         onClick={() => setActiveTab('editor')}
-                        style={{
-                            borderRadius: '4px 0 0 4px',
-                            borderRight: 'none',
-                            opacity: activeTab === 'editor' ? 1 : 0.55,
-                            fontWeight: activeTab === 'editor' ? 'bold' : 'normal',
-                        }}
                     >
                         Sprite Editor
                     </button>
                     <button
-                        className="view-toggle-btn"
+                        className={`view-toggle-btn ${activeTab === 'preview' ? 'active' : ''}`}
                         onClick={() => setActiveTab('preview')}
-                        style={{
-                            borderRadius: '0 4px 4px 0',
-                            opacity: activeTab === 'preview' ? 1 : 0.55,
-                            fontWeight: activeTab === 'preview' ? 'bold' : 'normal',
-                        }}
                     >
                         Skin Preview
                     </button>
