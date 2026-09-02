@@ -208,6 +208,7 @@ h3 {
 /* Center Canvas */
 .center-canvas {
     flex: 1;
+    min-width: 0;
     background-color: #2a2a2a;
     display: flex;
     justify-content: center;
