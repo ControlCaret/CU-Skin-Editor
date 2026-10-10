@@ -37,7 +37,18 @@ export function ResizeSpriteDialog({
 
     return (
         <div className="resize-dialog-backdrop" onMouseDown={onCancel}>
-            <form className="resize-dialog" onSubmit={handleSubmit} onMouseDown={e => e.stopPropagation()}>
+            <form
+                className="resize-dialog"
+                onSubmit={handleSubmit}
+                onMouseDown={e => e.stopPropagation()}
+                onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onCancel();
+                    }
+                }}
+            >
                 <h3>Resize Sprite</h3>
                 <label>
                     Width
