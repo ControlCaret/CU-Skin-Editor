@@ -315,6 +315,11 @@ h3 {
     justify-content: flex-start !important;
 }
 
+.resize-dialog-error {
+    color: #ff8a8a;
+    font-size: 12px;
+}
+
 .resize-dialog-actions {
     display: flex;
     justify-content: flex-end;

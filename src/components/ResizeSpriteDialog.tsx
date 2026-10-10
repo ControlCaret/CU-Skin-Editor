@@ -19,6 +19,8 @@ export function ResizeSpriteDialog({
     const [keepRatio, setKeepRatio] = useState(true);
     const [interpolation, setInterpolation] = useState<ResizeInterpolation>('nearest');
     const ratio = currentWidth / currentHeight;
+    const isValidSize = Number.isInteger(width) && width > 0 && Number.isInteger(height) && height > 0;
+    const validationMessage = isValidSize ? '' : 'Width and height must be positive integers.';
 
     const handleWidthChange = (value: number) => {
         setWidth(value);
@@ -32,7 +34,7 @@ export function ResizeSpriteDialog({
 
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
-        if (width > 0 && height > 0) onApply(width, height, interpolation);
+        if (isValidSize) onApply(width, height, interpolation);
     };
 
     return (
@@ -69,9 +71,10 @@ export function ResizeSpriteDialog({
                         <option value="smooth">Smooth</option>
                     </select>
                 </label>
+                {validationMessage && <div className="resize-dialog-error">{validationMessage}</div>}
                 <div className="resize-dialog-actions">
                     <button type="button" onClick={onCancel}>Cancel</button>
-                    <button type="submit">Apply</button>
+                    <button type="submit" disabled={!isValidSize}>Apply</button>
                 </div>
             </form>
         </div>
