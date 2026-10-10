@@ -238,6 +238,8 @@ function App() {
         setSelectionData(null);
         setCanvasBackup(null);
         saveCanvasToMemory();
+
+        setTimeout(() => handleAutoZoom({ w: width, h: height }), 0);
     };
 
     const handleSpriteSelect = (newSprite: SpriteFile) => {
@@ -1023,11 +1025,11 @@ function App() {
         undo, redo, activeMenu, setActiveMenu, setResizeDialogOpen: setIsResizeDialogOpen
     };
 
-    const handleAutoZoom = () => {
-        if (containerRef.current && canvasSize.w > 0) {
+    const handleAutoZoom = (size = canvasSize) => {
+        if (containerRef.current && size.w > 0) {
             const pad = 180;
-            const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / canvasSize.w);
-            const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / canvasSize.h);
+            const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / size.w);
+            const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / size.h);
             const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
             setZoom(Math.min(100, fitZoom));
         }
