@@ -84,7 +84,7 @@ export function CanvasEditor({
                         <button className="resize-sprite-button" onClick={() => setIsResizeDialogOpen(true)}>Resize</button>
                     </div>
                     <div className="zoom-controls">
-                        <button onClick={handleAutoZoom} className="zoom-btn-auto">Auto</button>
+                        <button onClick={() => handleAutoZoom()} className="zoom-btn-auto">Auto</button>
                         <button onClick={() => setZoom(z => Math.max(1, z - 1))} className="zoom-btn">-</button>
                         <input
                             type="range"
