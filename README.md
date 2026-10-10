@@ -12,6 +12,9 @@ A lightweight web-based skin editor and viewer for **[Casualties: Unknown](https
 - **Export**: Export skins as a ZIP file or overwrite local folders.
 - **Smart Palette**: Automatically extract prominent colors from sprites.
 
+## Notes
+- Sprite resizing is supported, but the result may look different in the preview and in-game.
+
 ## Tech Stack
 - **Core**: React 19 + TypeScript + Vite
 - **Graphics**: HTML5 `<canvas>` API
