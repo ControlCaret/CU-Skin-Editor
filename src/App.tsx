@@ -3,6 +3,7 @@ import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
 import { extractPalette } from './utils/paletteExtraction'
+import { resizeSpriteCanvas, type ResizeInterpolation } from './utils/resizeSprite'
 
 import type { SpriteFile } from './types'
 import { TopBar } from './components/TopBar'
@@ -32,7 +33,7 @@ function App() {
     const [isPastedSelection, setIsPastedSelection] = useState(false);
     const [originalSelectionBounds, setOriginalSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     
-    const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
+    const historyRef = useRef<{ stack: { data: ImageData; width: number; height: number }[], index: number }>({ stack: [], index: -1 });
 
     const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
     const [activeAnim, setActiveAnim] = useState<string>('walk');
@@ -57,6 +58,7 @@ function App() {
     const [showGuide, setShowGuide] = useState(false);
     const [showPixelGrid, setShowPixelGrid] = useState(false);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
+    const [isResizeDialogOpen, setIsResizeDialogOpen] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = () => setActiveMenu(null);
@@ -137,7 +139,7 @@ function App() {
 
             // Initialize history with the loaded state
             const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            historyRef.current = { stack: [initialData], index: 0 };
+            historyRef.current = { stack: [{ data: initialData, width: canvas.width, height: canvas.height }], index: 0 };
 
             // Extract Palette
             const extracted = extractPalette(initialData, 28);
@@ -222,6 +224,24 @@ function App() {
         }
     };
 
+    const handleResizeSprite = (width: number, height: number, interpolation: ResizeInterpolation) => {
+        const canvas = canvasRef.current;
+        if (!canvas || width < 1 || height < 1) return;
+
+        const resized = resizeSpriteCanvas(canvas, width, height, interpolation);
+        canvas.width = resized.width;
+        canvas.height = resized.height;
+        canvas.getContext('2d')?.drawImage(resized, 0, 0);
+        setCanvasSize({ w: width, h: height });
+        setSelectionBounds(null);
+        setSelectionData(null);
+        setCanvasBackup(null);
+        pushToHistory();
+        saveCanvasToMemory();
+
+        setTimeout(() => handleAutoZoom({ w: width, h: height }), 0);
+    };
+
     const handleSpriteSelect = (newSprite: SpriteFile) => {
         if (selectedSprite && newSprite.name === selectedSprite.name) return;
         if (historyRef.current.index > 0) {
@@ -248,7 +268,7 @@ function App() {
         
         const h = historyRef.current;
         h.stack = h.stack.slice(0, h.index + 1);
-        h.stack.push(data);
+        h.stack.push({ data, width: canvasRef.current.width, height: canvasRef.current.height });
         if (h.stack.length > 50) {
             h.stack.shift();
         } else {
@@ -256,12 +276,20 @@ function App() {
         }
     };
 
+    const restoreHistoryEntry = (entry: { data: ImageData; width: number; height: number }) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.width = entry.width;
+        canvas.height = entry.height;
+        canvas.getContext('2d')?.putImageData(entry.data, 0, 0);
+        setCanvasSize({ w: entry.width, h: entry.height });
+    };
+
     const undo = () => {
         const h = historyRef.current;
         if (h.index > 0 && canvasRef.current) {
             h.index--;
-            const ctx = canvasRef.current.getContext('2d')!;
-            ctx.putImageData(h.stack[h.index], 0, 0);
+            restoreHistoryEntry(h.stack[h.index]);
             saveCanvasToMemory();
         }
     };
@@ -270,8 +298,7 @@ function App() {
         const h = historyRef.current;
         if (h.index < h.stack.length - 1 && canvasRef.current) {
             h.index++;
-            const ctx = canvasRef.current.getContext('2d')!;
-            ctx.putImageData(h.stack[h.index], 0, 0);
+            restoreHistoryEntry(h.stack[h.index]);
             saveCanvasToMemory();
         }
     };
@@ -328,7 +355,10 @@ function App() {
             const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
             const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
             
-            if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z') {
+            if (cmdOrCtrl && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'r') {
+                e.preventDefault();
+                stateRef.current.setResizeDialogOpen(true);
+            } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z') {
                 e.preventDefault();
                 if (stateRef.current.redo) stateRef.current.redo();
             } else if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
@@ -999,14 +1029,14 @@ function App() {
         setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
         setIsPastedSelection, setOriginalSelectionBounds,
         commitSelection, saveCanvasToMemory, handleSaveSprite,
-        undo, redo, activeMenu, setActiveMenu
+        undo, redo, activeMenu, setActiveMenu, setResizeDialogOpen: setIsResizeDialogOpen
     };
 
-    const handleAutoZoom = () => {
-        if (containerRef.current && canvasSize.w > 0) {
+    const handleAutoZoom = (size = canvasSize) => {
+        if (containerRef.current && size.w > 0) {
             const pad = 180;
-            const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / canvasSize.w);
-            const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / canvasSize.h);
+            const maxZoomX = Math.floor((containerRef.current.clientWidth - pad) / size.w);
+            const maxZoomY = Math.floor((containerRef.current.clientHeight - pad) / size.h);
             const fitZoom = Math.max(1, Math.min(maxZoomX, maxZoomY));
             setZoom(Math.min(100, fitZoom));
         }
@@ -1070,6 +1100,9 @@ function App() {
                             activeAnim={activeAnim}
                             selectedEye={selectedEye}
                             showNosebleed={showNosebleed}
+                            isResizeDialogOpen={isResizeDialogOpen}
+                            setIsResizeDialogOpen={setIsResizeDialogOpen}
+                            onResizeSprite={handleResizeSprite}
                         />
                     ) : (
                         <SkinPreviewTab 

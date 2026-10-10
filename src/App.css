@@ -14,6 +14,12 @@
     overflow: hidden;
 }
 
+.center-wrapper {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
 h3 {
     font-size: 14px;
     margin-bottom: 10px;
@@ -242,9 +248,86 @@ h3 {
     border-radius: 4px;
     font-size: 12px;
     color: #ddd;
-    pointer-events: none;
+    pointer-events: auto;
     z-index: 10;
 }
+
+/* Sprite resize controls */
+.resize-sprite-button {
+    margin-left: 10px;
+    padding: 3px 8px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background: #2a2a2a;
+    color: #ddd;
+    cursor: pointer;
+}
+
+.resize-sprite-button:hover {
+    background: #3a3a3a;
+}
+
+.resize-dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.resize-dialog {
+    display: flex;
+    width: 280px;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: #222;
+    color: #ddd;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+.resize-dialog h3 {
+    margin: 0 0 4px;
+}
+
+.resize-dialog label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.resize-dialog input[type="number"],
+.resize-dialog select {
+    width: 130px;
+    padding: 4px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    background: #161616;
+    color: #ddd;
+}
+
+.resize-dialog-checkbox {
+    justify-content: flex-start !important;
+}
+
+.resize-dialog-error {
+    color: #ff8a8a;
+    font-size: 12px;
+}
+
+.resize-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* Zoom controls */
 .zoom-controls {
     position: absolute;
     bottom: 15px;

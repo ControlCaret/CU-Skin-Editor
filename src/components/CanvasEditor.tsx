@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import type { SpriteFile } from '../types';
+import type { ResizeInterpolation } from '../utils/resizeSprite';
 import { SkinPreviewCanvas } from './SkinPreviewCanvas';
+import { ResizeSpriteDialog } from './ResizeSpriteDialog';
 
 interface CanvasEditorProps {
     containerRef: React.RefObject<HTMLElement | null>;
@@ -22,6 +24,9 @@ interface CanvasEditorProps {
     activeAnim: string;
     selectedEye: string;
     showNosebleed: boolean;
+    isResizeDialogOpen: boolean;
+    setIsResizeDialogOpen: (open: boolean) => void;
+    onResizeSprite?: (width: number, height: number, interpolation: ResizeInterpolation) => void;
 }
 
 export function CanvasEditor({
@@ -44,6 +49,9 @@ export function CanvasEditor({
     activeAnim,
     selectedEye,
     showNosebleed,
+    isResizeDialogOpen,
+    setIsResizeDialogOpen,
+    onResizeSprite,
 }: CanvasEditorProps) {
     const [previewSize, setPreviewSize] = useState(180);
     const dragStartRef = useRef<{ x: number; y: number; size: number } | null>(null);
@@ -73,6 +81,7 @@ export function CanvasEditor({
                 <>
                     <div className="canvas-info">
                         {canvasSize.w} &times; {canvasSize.h} px
+                        <button className="resize-sprite-button" onClick={() => setIsResizeDialogOpen(true)}>Resize</button>
                     </div>
                     <div className="zoom-controls">
                         <button onClick={handleAutoZoom} className="zoom-btn-auto">Auto</button>
@@ -169,6 +178,17 @@ export function CanvasEditor({
                             </svg>
                         </div>
                     </div>
+                    {isResizeDialogOpen && (
+                        <ResizeSpriteDialog
+                            currentWidth={canvasSize.w}
+                            currentHeight={canvasSize.h}
+                            onCancel={() => setIsResizeDialogOpen(false)}
+                            onApply={(width, height, interpolation) => {
+                                onResizeSprite?.(width, height, interpolation);
+                                setIsResizeDialogOpen(false);
+                            }}
+                        />
+                    )}
                 </>
             )}
         </main>
