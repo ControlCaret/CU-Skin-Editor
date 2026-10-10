@@ -24,6 +24,8 @@ interface CanvasEditorProps {
     activeAnim: string;
     selectedEye: string;
     showNosebleed: boolean;
+    isResizeDialogOpen: boolean;
+    setIsResizeDialogOpen: (open: boolean) => void;
     onResizeSprite?: (width: number, height: number, interpolation: ResizeInterpolation) => void;
 }
 
@@ -47,10 +49,11 @@ export function CanvasEditor({
     activeAnim,
     selectedEye,
     showNosebleed,
+    isResizeDialogOpen,
+    setIsResizeDialogOpen,
     onResizeSprite,
 }: CanvasEditorProps) {
     const [previewSize, setPreviewSize] = useState(180);
-    const [isResizeDialogOpen, setIsResizeDialogOpen] = useState(false);
     const dragStartRef = useRef<{ x: number; y: number; size: number } | null>(null);
 
     const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {

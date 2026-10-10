@@ -58,6 +58,7 @@ function App() {
     const [showGuide, setShowGuide] = useState(false);
     const [showPixelGrid, setShowPixelGrid] = useState(false);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
+    const [isResizeDialogOpen, setIsResizeDialogOpen] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = () => setActiveMenu(null);
@@ -345,7 +346,10 @@ function App() {
             const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
             const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
             
-            if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z') {
+            if (cmdOrCtrl && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'r') {
+                e.preventDefault();
+                stateRef.current.setResizeDialogOpen(true);
+            } else if (cmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'z') {
                 e.preventDefault();
                 if (stateRef.current.redo) stateRef.current.redo();
             } else if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
@@ -1016,7 +1020,7 @@ function App() {
         setCanvasBackup, setIsDraggingSelection, setIsDrawingSelection,
         setIsPastedSelection, setOriginalSelectionBounds,
         commitSelection, saveCanvasToMemory, handleSaveSprite,
-        undo, redo, activeMenu, setActiveMenu
+        undo, redo, activeMenu, setActiveMenu, setResizeDialogOpen: setIsResizeDialogOpen
     };
 
     const handleAutoZoom = () => {
@@ -1087,6 +1091,8 @@ function App() {
                             activeAnim={activeAnim}
                             selectedEye={selectedEye}
                             showNosebleed={showNosebleed}
+                            isResizeDialogOpen={isResizeDialogOpen}
+                            setIsResizeDialogOpen={setIsResizeDialogOpen}
                             onResizeSprite={handleResizeSprite}
                         />
                     ) : (
