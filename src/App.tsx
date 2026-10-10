@@ -33,7 +33,7 @@ function App() {
     const [isPastedSelection, setIsPastedSelection] = useState(false);
     const [originalSelectionBounds, setOriginalSelectionBounds] = useState<{x: number, y: number, w: number, h: number} | null>(null);
     
-    const historyRef = useRef<{ stack: ImageData[], index: number }>({ stack: [], index: -1 });
+    const historyRef = useRef<{ stack: { data: ImageData; width: number; height: number }[], index: number }>({ stack: [], index: -1 });
 
     const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
     const [activeAnim, setActiveAnim] = useState<string>('walk');
@@ -139,7 +139,7 @@ function App() {
 
             // Initialize history with the loaded state
             const initialData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            historyRef.current = { stack: [initialData], index: 0 };
+            historyRef.current = { stack: [{ data: initialData, width: canvas.width, height: canvas.height }], index: 0 };
 
             // Extract Palette
             const extracted = extractPalette(initialData, 28);
@@ -228,7 +228,6 @@ function App() {
         const canvas = canvasRef.current;
         if (!canvas || width < 1 || height < 1) return;
 
-        pushToHistory();
         const resized = resizeSpriteCanvas(canvas, width, height, interpolation);
         canvas.width = resized.width;
         canvas.height = resized.height;
@@ -237,6 +236,7 @@ function App() {
         setSelectionBounds(null);
         setSelectionData(null);
         setCanvasBackup(null);
+        pushToHistory();
         saveCanvasToMemory();
 
         setTimeout(() => handleAutoZoom({ w: width, h: height }), 0);
@@ -268,7 +268,7 @@ function App() {
         
         const h = historyRef.current;
         h.stack = h.stack.slice(0, h.index + 1);
-        h.stack.push(data);
+        h.stack.push({ data, width: canvasRef.current.width, height: canvasRef.current.height });
         if (h.stack.length > 50) {
             h.stack.shift();
         } else {
@@ -276,12 +276,20 @@ function App() {
         }
     };
 
+    const restoreHistoryEntry = (entry: { data: ImageData; width: number; height: number }) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.width = entry.width;
+        canvas.height = entry.height;
+        canvas.getContext('2d')?.putImageData(entry.data, 0, 0);
+        setCanvasSize({ w: entry.width, h: entry.height });
+    };
+
     const undo = () => {
         const h = historyRef.current;
         if (h.index > 0 && canvasRef.current) {
             h.index--;
-            const ctx = canvasRef.current.getContext('2d')!;
-            ctx.putImageData(h.stack[h.index], 0, 0);
+            restoreHistoryEntry(h.stack[h.index]);
             saveCanvasToMemory();
         }
     };
@@ -290,8 +298,7 @@ function App() {
         const h = historyRef.current;
         if (h.index < h.stack.length - 1 && canvasRef.current) {
             h.index++;
-            const ctx = canvasRef.current.getContext('2d')!;
-            ctx.putImageData(h.stack[h.index], 0, 0);
+            restoreHistoryEntry(h.stack[h.index]);
             saveCanvasToMemory();
         }
     };
