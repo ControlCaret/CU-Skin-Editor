@@ -3,6 +3,7 @@ import JSZip from 'jszip'
 import './App.css'
 import { defaultSprites } from './defaultSprites'
 import { extractPalette } from './utils/paletteExtraction'
+import { resizeSpriteCanvas, type ResizeInterpolation } from './utils/resizeSprite'
 
 import type { SpriteFile } from './types'
 import { TopBar } from './components/TopBar'
@@ -220,6 +221,22 @@ function App() {
                 }
             }, 'image/png');
         }
+    };
+
+    const handleResizeSprite = (width: number, height: number, interpolation: ResizeInterpolation) => {
+        const canvas = canvasRef.current;
+        if (!canvas || width < 1 || height < 1) return;
+
+        pushToHistory();
+        const resized = resizeSpriteCanvas(canvas, width, height, interpolation);
+        canvas.width = resized.width;
+        canvas.height = resized.height;
+        canvas.getContext('2d')?.drawImage(resized, 0, 0);
+        setCanvasSize({ w: width, h: height });
+        setSelectionBounds(null);
+        setSelectionData(null);
+        setCanvasBackup(null);
+        saveCanvasToMemory();
     };
 
     const handleSpriteSelect = (newSprite: SpriteFile) => {
@@ -1070,6 +1087,7 @@ function App() {
                             activeAnim={activeAnim}
                             selectedEye={selectedEye}
                             showNosebleed={showNosebleed}
+                            onResizeSprite={handleResizeSprite}
                         />
                     ) : (
                         <SkinPreviewTab 
