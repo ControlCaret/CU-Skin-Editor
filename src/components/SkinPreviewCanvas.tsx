@@ -16,6 +16,7 @@ export interface SkinPreviewCanvasProps {
     className?: string;
     spriteOverrides?: Record<string, string>;
     showNosebleed?: boolean;
+    blinkEnabled?: boolean;
     autoZoomTrigger?: number;
 }
 
@@ -83,6 +84,7 @@ export function SkinPreviewCanvas({
     className,
     spriteOverrides = {},
     showNosebleed = true,
+    blinkEnabled = true,
     autoZoomTrigger = 0,
 }: SkinPreviewCanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -107,7 +109,7 @@ export function SkinPreviewCanvas({
         let active = true;
         const loadedImages: Record<string, HTMLImageElement> = {};
         let loadedCount = 0;
-        const neededSpriteNames = Array.from(new Set(Object.values(effectiveSpriteMap)));
+        const neededSpriteNames = Array.from(new Set([...Object.values(effectiveSpriteMap), 'experimentEyeClosed.png']));
 
         neededSpriteNames.forEach(spriteName => {
             const blob = modifiedBlobs[spriteName];
@@ -156,6 +158,12 @@ export function SkinPreviewCanvas({
             animTimeRef.current = (animTimeRef.current + dt) % duration;
             const t = animTimeRef.current;
 
+            const blinkableEye = !['experimentEyePanic.png', 'experimentEyeGone.png', 'experimentEyeGoneHealed.png'].includes(effectiveSpriteMap.eyes);
+            const isBlinking = blinkEnabled && blinkableEye && timeMs % 5000 < 120;
+            const renderSpriteMap = isBlinking
+                ? { ...effectiveSpriteMap, eyes: 'experimentEyeClosed.png' }
+                : effectiveSpriteMap;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (Object.keys(images).length === 0) {
@@ -166,7 +174,7 @@ export function SkinPreviewCanvas({
                 return;
             }
 
-            if (!images[effectiveSpriteMap[sortedBones[0]?.id]] || !images[effectiveSpriteMap['downTorso']]) return;
+            if (!images[renderSpriteMap[sortedBones[0]?.id]] || !images[renderSpriteMap['downTorso']]) return;
 
             const computedPoses: Record<string, { x: number; y: number; rotZ: number }> = {};
 
@@ -208,7 +216,7 @@ export function SkinPreviewCanvas({
                         const animPos = interpolateVector(animData[boneId].position, t);
                         if (animPos) {
                             let implicitPPU = 50;
-                            const rImg = images[effectiveSpriteMap[boneId]];
+                            const rImg = images[renderSpriteMap[boneId]];
                             if (rImg && bone.collider?.type === 'BoxCollider2D' && bone.collider.size) {
                                 implicitPPU = rImg.height / bone.collider.size.y;
                             }
@@ -239,8 +247,8 @@ export function SkinPreviewCanvas({
                     }
                 }
 
-                const img = images[effectiveSpriteMap[boneId]];
-                const parentImg = images[effectiveSpriteMap[bone.joint.connectedBody]];
+                const img = images[renderSpriteMap[boneId]];
+                const parentImg = images[renderSpriteMap[bone.joint.connectedBody]];
                 if (!img || !parentImg || !parentBone) return { x: parentPose.x, y: parentPose.y, rotZ };
 
                 const pAnchor = getAnchorPixels(parentBone, bone.joint.connectedAnchor.x, bone.joint.connectedAnchor.y, parentImg);
@@ -292,7 +300,7 @@ export function SkinPreviewCanvas({
 
             sortedBones.forEach(bone => {
                 if (!showNosebleed && (bone.id === 'nosebleed' || bone.id === 'noseblood')) return;
-                const img = images[effectiveSpriteMap[bone.id]];
+                const img = images[renderSpriteMap[bone.id]];
                 const pose = computedPoses[bone.id];
                 if (!img || !pose) return;
                 ctx.save();

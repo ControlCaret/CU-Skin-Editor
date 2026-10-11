@@ -39,6 +39,7 @@ function App() {
     const [activeAnim, setActiveAnim] = useState<string>('walk');
     const [selectedEye, setSelectedEye] = useState<string>('experimentEyeOpen.png');
     const [showNosebleed, setShowNosebleed] = useState<boolean>(false);
+    const [blinkEnabled, setBlinkEnabled] = useState(true);
 
     const stateRef = useRef<any>({});
     
@@ -1100,6 +1101,7 @@ function App() {
                             activeAnim={activeAnim}
                             selectedEye={selectedEye}
                             showNosebleed={showNosebleed}
+                            blinkEnabled={blinkEnabled}
                             isResizeDialogOpen={isResizeDialogOpen}
                             setIsResizeDialogOpen={setIsResizeDialogOpen}
                             onResizeSprite={handleResizeSprite}
@@ -1114,6 +1116,8 @@ function App() {
                             setSelectedEye={setSelectedEye}
                             showNosebleed={showNosebleed}
                             setShowNosebleed={setShowNosebleed}
+                            blinkEnabled={blinkEnabled}
+                            setBlinkEnabled={setBlinkEnabled}
                         />
                     )}
                 </div>

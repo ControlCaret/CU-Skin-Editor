@@ -6,10 +6,10 @@ import { SkinPreviewCanvas } from './SkinPreviewCanvas';
 // All eye sprite options (display name → filename)
 const EYE_OPTIONS: { label: string; file: string }[] = [
     { label: 'Open',         file: 'experimentEyeOpen.png' },
+    { label: 'Closed',       file: 'experimentEyeClosed.png' },
     { label: 'Happy',        file: 'experimentEyeHappy.png' },
     { label: 'Half',         file: 'experimentEyeHalfClosed.png' },
     { label: 'HalfBack',     file: 'experimentEyeHalfClosedBack.png' },
-    { label: 'Closed',       file: 'experimentEyeClosed.png' },
     { label: 'Sad',          file: 'experimentEyeSad.png' },
     { label: 'SadBack',      file: 'experimentEyeSadBack.png' },
     { label: 'Scared',       file: 'experimentEyeScared.png' },
@@ -29,6 +29,8 @@ interface SkinPreviewTabProps {
     setSelectedEye: (eye: string) => void;
     showNosebleed: boolean;
     setShowNosebleed: (show: boolean) => void;
+    blinkEnabled: boolean;
+    setBlinkEnabled: (enabled: boolean) => void;
 }
 
 export function SkinPreviewTab({ 
@@ -39,7 +41,9 @@ export function SkinPreviewTab({
     selectedEye,
     setSelectedEye,
     showNosebleed,
-    setShowNosebleed
+    setShowNosebleed,
+    blinkEnabled,
+    setBlinkEnabled
 }: SkinPreviewTabProps) {
     const [zoom, setZoom] = useState(3);
     const [autoZoomTrigger, setAutoZoomTrigger] = useState(0);
@@ -68,6 +72,7 @@ export function SkinPreviewTab({
                 }}
                 spriteOverrides={spriteOverrides}
                 showNosebleed={showNosebleed}
+                blinkEnabled={blinkEnabled}
                 autoZoomTrigger={autoZoomTrigger}
             />
 
@@ -134,6 +139,10 @@ export function SkinPreviewTab({
                 </label>
 
                 {/* Eye selector */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: '#ccc', fontSize: 12 }}>
+                    <input type="checkbox" checked={blinkEnabled} onChange={e => setBlinkEnabled(e.target.checked)} style={{ cursor: 'pointer' }} />
+                    Blink eyes
+                </label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end', maxWidth: 300 }}>
                     {EYE_OPTIONS.map(opt => (
                         <button

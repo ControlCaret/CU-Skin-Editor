@@ -24,6 +24,7 @@ interface CanvasEditorProps {
     activeAnim: string;
     selectedEye: string;
     showNosebleed: boolean;
+    blinkEnabled: boolean;
     isResizeDialogOpen: boolean;
     setIsResizeDialogOpen: (open: boolean) => void;
     onResizeSprite?: (width: number, height: number, interpolation: ResizeInterpolation) => void;
@@ -49,6 +50,7 @@ export function CanvasEditor({
     activeAnim,
     selectedEye,
     showNosebleed,
+    blinkEnabled,
     isResizeDialogOpen,
     setIsResizeDialogOpen,
     onResizeSprite,
@@ -158,6 +160,7 @@ export function CanvasEditor({
                             style={{ display: 'block', width: '100%', height: '100%' }}
                             spriteOverrides={{ head: 'experimentHeadBack.png', eyes: selectedEye }}
                             showNosebleed={showNosebleed}
+                            blinkEnabled={blinkEnabled}
                         />
                         <div
                             onMouseDown={handleResizeMouseDown}
